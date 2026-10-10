@@ -14,12 +14,7 @@ He escapes on Day 7 and rebuilds his life. Full story: see the "Seventh Night Ga
 
 ## Milestones
 1. [x] Window, glTF loading, side camera, depth lanes, lantern light, fog (this starter)
-2. [ ] Animated characters (see "Animation plan" below for details)
-   - 2a. Load the Teen character GLB: skin (joints + inverse bind matrices), skinned vertex data (JOINTS_0, WEIGHTS_0)
-   - 2b. Load animation GLBs: clips with translation/rotation/scale channels; list every clip name to the console
-   - 2c. Sampler: interpolate keyframes (linear for translation/scale, slerp for rotation), match joints BY NAME
-   - 2d. GPU skinning in the vertex shader (uniform mat4 jointMatrices[128])
-   - 2e. Animator: state machine (Idle, Walk, Run, Jump, Fall, Climb, Sit...) with 0.2 s crossfade blending
+2. [x] Animated characters & skeletal GPU skinning (loaded UAL1 & UAL2 clips, node-name keyframe samplers, GPU shader skinning, crossfade animator)
 3. [ ] Scene file format (simple text or JSON) listing models, positions, lanes; load a forest level from it
 4. [ ] Collision: axis-aligned boxes for ground, rocks, trees; platforms; one-way ledges; climbing
 5. [ ] Meters: Body, Will, Stamina, Hope; HUD drawn with a simple text and bar renderer
