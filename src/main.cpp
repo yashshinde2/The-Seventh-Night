@@ -13,8 +13,10 @@
 #include <vector>
 
 #include "Model.h"
+#include "core/Assets.h"
 #include "anim/SkinnedModel.h"
 #include "anim/Animation.h"
+#include "anim/Animator.h"
 #include "physics/PhysicsEngine.h"
 #include "game/GameMeters.h"
 
@@ -173,32 +175,41 @@ int main(int argc, char** argv) {
         Model ground = Model::groundQuad(200.0f, glm::vec4(0.18f, 0.28f, 0.18f, 1.0f));
         Model playerFallback = Model::box(glm::vec3(0.6f, 1.7f, 0.4f), glm::vec4(0.25f, 0.45f, 0.85f, 1.0f));
 
-        // Load Nature Props
+        // --- Phase 1: Robust Asset Discovery ---
+        fs::path assetsRoot = AssetManager::findAssetsRoot(argv[0]);
+        AssetManager::printDiscoveredAssets(assetsRoot);
+
+        // Load Nature Props dynamically from assetsRoot
         std::vector<Model> propTemplates;
-        std::vector<std::string> propPaths = {
-            "assets/Stylized Nature MegaKit[Standard]/glTF/CommonTree_1.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/CommonTree_2.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/DeadTree_1.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/DeadTree_2.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/TwistedTree_1.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_1.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_2.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/Bush_Common.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/Fern_1.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/Mushroom_Common.gltf"
+        fs::path natureDir = assetsRoot / "Stylized Nature MegaKit[Standard]" / "glTF";
+        std::vector<fs::path> relPropPaths = {
+            natureDir / "CommonTree_1.gltf",
+            natureDir / "CommonTree_2.gltf",
+            natureDir / "DeadTree_1.gltf",
+            natureDir / "DeadTree_2.gltf",
+            natureDir / "TwistedTree_1.gltf",
+            natureDir / "Rock_Medium_1.gltf",
+            natureDir / "Rock_Medium_2.gltf",
+            natureDir / "Bush_Common.gltf",
+            natureDir / "Fern_1.gltf",
+            natureDir / "Mushroom_Common.gltf"
         };
 
-        for (const auto& path : propPaths) {
+        for (const auto& path : relPropPaths) {
             Model m;
-            if (m.loadGLB(path)) {
-                propTemplates.push_back(std::move(m));
-            }
+            bool ok = m.loadGLB(path.string());
+            std::printf("[Phase 1] Load Prop '%s': %s\n", path.filename().string().c_str(), ok ? "SUCCESS" : "FAILED");
+            if (ok) propTemplates.push_back(std::move(m));
         }
 
         // Additional CLI models
         for (int i = 1; i < argc; ++i) {
             Model m;
             if (m.loadGLB(argv[i])) propTemplates.push_back(std::move(m));
+        }
+
+        if (propTemplates.empty()) {
+            std::fprintf(stderr, "\n[WARNING] Phase 1: Zero environment props were loaded!\n");
         }
 
         // Generate Dense Forest Level Layout along lanes
@@ -227,17 +238,36 @@ int main(int argc, char** argv) {
             }
         }
 
-        // Load Skinned Character & Animations
+        // Load Skinned Character & Animations dynamically from assetsRoot
+        fs::path charPath = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Male_FullBody.gltf";
         SkinnedModel playerCharacter;
-        bool hasSkinnedPlayer = playerCharacter.loadGLB("assets/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf");
+        bool hasSkinnedPlayer = playerCharacter.loadGLB(charPath.string());
+        std::printf("[Phase 1] Load Character '%s': %s\n", charPath.filename().string().c_str(), hasSkinnedPlayer ? "SUCCESS" : "FAILED");
+        if (!hasSkinnedPlayer) {
+            std::fprintf(stderr, "\n[WARNING] Phase 1: Player character model failed to load! Using fallback blue box.\n");
+        }
+
+        fs::path ual1Path = assetsRoot / "Universal Animation Library[Standard]" / "Universal Animation Library[Standard]" / "Unreal-Godot" / "UAL1_Standard.glb";
+        fs::path ual2Path = assetsRoot / "Universal Animation Library 2[Standard]" / "Universal Animation Library 2[Standard]" / "Unreal-Godot" / "UAL2_Standard.glb";
 
         AnimationLibrary animLib;
-        animLib.loadGLBAnimations("assets/Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb");
-        animLib.loadGLBAnimations("assets/Universal Animation Library 2[Standard]/Universal Animation Library 2[Standard]/Unreal-Godot/UAL2_Standard.glb");
+        bool okAnim1 = animLib.loadGLBAnimations(ual1Path.string());
+        std::printf("[Phase 1] Load UAL1 Animations '%s': %s\n", ual1Path.filename().string().c_str(), okAnim1 ? "SUCCESS" : "FAILED");
 
-        const AnimationClip* idleClip = animLib.findClip("Idle");
-        const AnimationClip* walkClip = animLib.findClip("Walk");
-        const AnimationClip* runClip = animLib.findClip("Sprint");
+        bool okAnim2 = animLib.loadGLBAnimations(ual2Path.string());
+        std::printf("[Phase 1] Load UAL2 Animations '%s': %s\n", ual2Path.filename().string().c_str(), okAnim2 ? "SUCCESS" : "FAILED");
+
+        animLib.printClipNames();
+
+        Animator animator;
+        animator.init(animLib);
+
+        if (hasSkinnedPlayer) {
+            const AnimationClip* testClip = animLib.findClipAny({"Idle_Loop", "Idle"});
+            if (testClip) {
+                animLib.checkRetarget(*testClip, playerCharacter.getBoneNames());
+            }
+        }
 
         CharacterPhysics playerPhysics;
         PlayerMeters meters;
@@ -245,7 +275,6 @@ int main(int argc, char** argv) {
         std::vector<ObstaclePlatform> platforms;
         platforms.push_back({AABB{glm::vec3(-150.0f, -1.0f, -10.0f), glm::vec3(150.0f, 0.0f, 10.0f)}, SurfaceType::Normal, false, 1});
 
-        float animTime = 0.0f;
         float camX = 0.0f;
         double lastTime = glfwGetTime();
 
@@ -254,6 +283,9 @@ int main(int argc, char** argv) {
         std::printf(" A/D: Move | W/S: Change Depth Lane | Space: Jump | Shift: Sprint\n");
         std::printf(" Q/E: Lower/Raise Will | Ctrl: Steady Breath | R: Red Thread Sense | Esc: Quit\n");
         std::fflush(stdout);
+
+        // Run Phase 0 Physics Test Verification
+        runPhysicsPhase0Test();
 
         while (!glfwWindowShouldClose(window)) {
             double now = glfwGetTime();
@@ -288,14 +320,9 @@ int main(int argc, char** argv) {
             playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq);
             meters.update(dt, false, sprint && (moveLeft || moveRight), steadyBreath, redThread);
 
-            // Animation Update
-            animTime += dt;
-            const AnimationClip* activeClip = idleClip;
-            if (moveLeft || moveRight) {
-                activeClip = sprint ? (runClip ? runClip : walkClip) : walkClip;
-            }
+            // Animation Update (Phase 2 & 3 State Machine & Blending)
             if (hasSkinnedPlayer) {
-                playerCharacter.updateSkeleton(activeClip, animTime);
+                animator.update(dt, playerPhysics, playerCharacter);
             }
 
             // Smooth Camera Tracking
@@ -342,9 +369,7 @@ int main(int argc, char** argv) {
 
             // Draw Player Character (Skinned mesh or fallback)
             glm::mat4 playerModelMatrix = glm::translate(glm::mat4(1.0f), playerPhysics.position);
-            if (moveLeft) {
-                playerModelMatrix = glm::rotate(playerModelMatrix, glm::radians(180.0f), glm::vec3(0, 1, 0));
-            }
+            playerModelMatrix = glm::rotate(playerModelMatrix, glm::radians(animator.getFacingAngleDegrees()), glm::vec3(0, 1, 0));
             if (hasSkinnedPlayer) {
                 playerCharacter.draw(program, playerModelMatrix);
             } else {

@@ -4,65 +4,110 @@
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include <cctype>
 
-glm::vec3 AnimationChannel::sampleTranslation(float time) const {
-    if (translationKeys.empty()) return glm::vec3(0.0f);
+namespace {
+
+static bool iequals(const std::string& a, const std::string& b) {
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i) {
+        if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i])) return false;
+    }
+    return true;
+}
+
+static bool istarts_with(const std::string& str, const std::string& prefix) {
+    if (str.size() < prefix.size()) return false;
+    for (size_t i = 0; i < prefix.size(); ++i) {
+        if (std::tolower((unsigned char)str[i]) != std::tolower((unsigned char)prefix[i])) return false;
+    }
+    return true;
+}
+
+static bool icontains(const std::string& haystack, const std::string& needle) {
+    auto it = std::search(
+        haystack.begin(), haystack.end(),
+        needle.begin(), needle.end(),
+        [](char ch1, char ch2) { return std::tolower((unsigned char)ch1) == std::tolower((unsigned char)ch2); }
+    );
+    return (it != haystack.end());
+}
+
+} // namespace
+
+glm::vec3 AnimationChannel::sampleTranslation(float time, const glm::vec3& fallback) const {
+    if (translationKeys.empty()) return fallback;
     if (translationKeys.size() == 1 || time <= translationKeys.front().time)
         return translationKeys.front().value;
     if (time >= translationKeys.back().time)
         return translationKeys.back().value;
 
-    size_t idx = 0;
-    for (size_t i = 0; i < translationKeys.size() - 1; ++i) {
-        if (time >= translationKeys[i].time && time <= translationKeys[i + 1].time) {
-            idx = i;
-            break;
-        }
+    // Binary search with std::upper_bound
+    auto it = std::upper_bound(
+        translationKeys.begin(), translationKeys.end(), time,
+        [](float t, const KeyframeVec3& k) { return t < k.time; }
+    );
+    size_t idx1 = std::distance(translationKeys.begin(), it);
+    size_t idx0 = idx1 - 1;
+
+    if (interp == AnimInterpolation::Step) {
+        return translationKeys[idx0].value;
     }
-    float t0 = translationKeys[idx].time;
-    float t1 = translationKeys[idx + 1].time;
+
+    float t0 = translationKeys[idx0].time;
+    float t1 = translationKeys[idx1].time;
     float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
-    return glm::mix(translationKeys[idx].value, translationKeys[idx + 1].value, factor);
+    return glm::mix(translationKeys[idx0].value, translationKeys[idx1].value, factor);
 }
 
-glm::quat AnimationChannel::sampleRotation(float time) const {
-    if (rotationKeys.empty()) return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+glm::quat AnimationChannel::sampleRotation(float time, const glm::quat& fallback) const {
+    if (rotationKeys.empty()) return fallback;
     if (rotationKeys.size() == 1 || time <= rotationKeys.front().time)
         return rotationKeys.front().value;
     if (time >= rotationKeys.back().time)
         return rotationKeys.back().value;
 
-    size_t idx = 0;
-    for (size_t i = 0; i < rotationKeys.size() - 1; ++i) {
-        if (time >= rotationKeys[i].time && time <= rotationKeys[i + 1].time) {
-            idx = i;
-            break;
-        }
+    // Binary search with std::upper_bound
+    auto it = std::upper_bound(
+        rotationKeys.begin(), rotationKeys.end(), time,
+        [](float t, const KeyframeQuat& k) { return t < k.time; }
+    );
+    size_t idx1 = std::distance(rotationKeys.begin(), it);
+    size_t idx0 = idx1 - 1;
+
+    if (interp == AnimInterpolation::Step) {
+        return rotationKeys[idx0].value;
     }
-    float t0 = rotationKeys[idx].time;
-    float t1 = rotationKeys[idx + 1].time;
+
+    float t0 = rotationKeys[idx0].time;
+    float t1 = rotationKeys[idx1].time;
     float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
-    return glm::slerp(rotationKeys[idx].value, rotationKeys[idx + 1].value, factor);
+    return glm::slerp(rotationKeys[idx0].value, rotationKeys[idx1].value, factor);
 }
 
-glm::vec3 AnimationChannel::sampleScale(float time) const {
-    if (scaleKeys.empty()) return glm::vec3(1.0f);
+glm::vec3 AnimationChannel::sampleScale(float time, const glm::vec3& fallback) const {
+    if (scaleKeys.empty()) return fallback;
     if (scaleKeys.size() == 1 || time <= scaleKeys.front().time)
         return scaleKeys.front().value;
     if (time >= scaleKeys.back().time)
         return scaleKeys.back().value;
 
-    size_t idx = 0;
-    for (size_t i = 0; i < scaleKeys.size() - 1; ++i) {
-        if (time >= scaleKeys[i].time && time <= scaleKeys[i + 1].time) {
-            idx = i;
-            break;
-        }
+    // Binary search with std::upper_bound
+    auto it = std::upper_bound(
+        scaleKeys.begin(), scaleKeys.end(), time,
+        [](float t, const KeyframeVec3& k) { return t < k.time; }
+    );
+    size_t idx1 = std::distance(scaleKeys.begin(), it);
+    size_t idx0 = idx1 - 1;
+
+    if (interp == AnimInterpolation::Step) {
+        return scaleKeys[idx0].value;
     }
-    float t0 = scaleKeys[idx].time;
-    float t1 = scaleKeys[idx + 1].time;
+
+    float t0 = scaleKeys[idx0].time;
+    float t1 = scaleKeys[idx1].time;
     float factor = (t1 > t0) ? (time - t0) / (t1 - t0) : 0.0f;
-    return glm::mix(scaleKeys[idx].value, scaleKeys[idx + 1].value, factor);
+    return glm::mix(scaleKeys[idx0].value, scaleKeys[idx1].value, factor);
 }
 
 void AnimationClip::buildChannelMap() {
@@ -80,6 +125,31 @@ const AnimationChannel* AnimationClip::getChannel(const std::string& nodeName) c
         return &channels[it->second];
     }
     return nullptr;
+}
+
+void AnimationClip::stripRootMotion(const std::string& rootBoneName) {
+    // Find target bone (exact or fallback to "Root" / "Hips")
+    AnimationChannel* target = nullptr;
+    auto it = nodeToChannel.find(rootBoneName);
+    if (it != nodeToChannel.end()) {
+        target = &channels[it->second];
+    } else {
+        for (auto& chan : channels) {
+            if (icontains(chan.targetNodeName, "root") || icontains(chan.targetNodeName, "hips")) {
+                target = &chan;
+                break;
+            }
+        }
+    }
+
+    if (target && !target->translationKeys.empty()) {
+        for (auto& key : target->translationKeys) {
+            key.value.x = 0.0f; // Keep physics responsible for horizontal translation
+            key.value.z = 0.0f;
+        }
+        std::printf("[Anim] Stripped root motion X/Z on clip '%s' (bone: %s)\n",
+                    name.c_str(), target->targetNodeName.c_str());
+    }
 }
 
 bool AnimationLibrary::loadGLBAnimations(const std::string& glbPath) {
@@ -125,6 +195,17 @@ bool AnimationLibrary::loadGLBAnimations(const std::string& glbPath) {
             const cgltf_animation_sampler* sampler = chan.sampler;
             if (!sampler || !sampler->input || !sampler->output) continue;
 
+            // Interpolation mode
+            bool isCubicSpline = false;
+            if (sampler->interpolation == cgltf_interpolation_type_step) {
+                channel.interp = AnimInterpolation::Step;
+            } else if (sampler->interpolation == cgltf_interpolation_type_cubic_spline) {
+                channel.interp = AnimInterpolation::CubicSpline;
+                isCubicSpline = true;
+            } else {
+                channel.interp = AnimInterpolation::Linear;
+            }
+
             cgltf_size timeCount = sampler->input->count;
             std::vector<float> times(timeCount);
             for (cgltf_size t = 0; t < timeCount; ++t) {
@@ -135,24 +216,27 @@ bool AnimationLibrary::loadGLBAnimations(const std::string& glbPath) {
             if (chan.target_path == cgltf_animation_path_type_translation) {
                 for (cgltf_size t = 0; t < timeCount; ++t) {
                     float v[3];
-                    cgltf_accessor_read_float(sampler->output, t, v, 3);
+                    cgltf_size outIdx = isCubicSpline ? (3 * t + 1) : t;
+                    cgltf_accessor_read_float(sampler->output, outIdx, v, 3);
                     channel.translationKeys.push_back({times[t], glm::vec3(v[0], v[1], v[2])});
                 }
             } else if (chan.target_path == cgltf_animation_path_type_rotation) {
                 for (cgltf_size t = 0; t < timeCount; ++t) {
                     float v[4];
-                    cgltf_accessor_read_float(sampler->output, t, v, 4);
-                    // glTF quaternion order: x, y, z, w -> glm::quat(w, x, y, z)
+                    cgltf_size outIdx = isCubicSpline ? (3 * t + 1) : t;
+                    cgltf_accessor_read_float(sampler->output, outIdx, v, 4);
                     channel.rotationKeys.push_back({times[t], glm::quat(v[3], v[0], v[1], v[2])});
                 }
             } else if (chan.target_path == cgltf_animation_path_type_scale) {
                 for (cgltf_size t = 0; t < timeCount; ++t) {
                     float v[3];
-                    cgltf_accessor_read_float(sampler->output, t, v, 3);
+                    cgltf_size outIdx = isCubicSpline ? (3 * t + 1) : t;
+                    cgltf_accessor_read_float(sampler->output, outIdx, v, 3);
                     channel.scaleKeys.push_back({times[t], glm::vec3(v[0], v[1], v[2])});
                 }
             }
         }
+
         clip.buildChannelMap();
         clipMap[clip.name] = clips.size();
         clips.push_back(clip);
@@ -167,14 +251,61 @@ const AnimationClip* AnimationLibrary::findClip(const std::string& name) const {
     auto it = clipMap.find(name);
     if (it != clipMap.end()) return &clips[it->second];
 
-    // Case-insensitive substring match fallback
-    std::string lowerName = name;
-    std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
-
     for (const auto& clip : clips) {
-        std::string clipLower = clip.name;
-        std::transform(clipLower.begin(), clipLower.end(), clipLower.begin(), ::tolower);
-        if (clipLower.find(lowerName) != std::string::npos) return &clip;
+        if (iequals(clip.name, name)) return &clip;
+    }
+    for (const auto& clip : clips) {
+        if (icontains(clip.name, name)) return &clip;
+    }
+    return nullptr;
+}
+
+const AnimationClip* AnimationLibrary::findClipAny(const std::vector<std::string>& candidateNames, const std::string& roleDesc) const {
+    // Pass 1: Exact match (case-insensitive)
+    for (const auto& candidate : candidateNames) {
+        for (const auto& clip : clips) {
+            if (iequals(clip.name, candidate)) {
+                if (!roleDesc.empty()) {
+                    std::printf("[Anim] Role '%s' mapped (Exact): '%s'\n", roleDesc.c_str(), clip.name.c_str());
+                }
+                return &clip;
+            }
+        }
+    }
+
+    // Pass 2: Starts with candidate name
+    for (const auto& candidate : candidateNames) {
+        for (const auto& clip : clips) {
+            if (istarts_with(clip.name, candidate)) {
+                // Ignore Zombie / Carry unless candidate explicitly contains it
+                if (!icontains(candidate, "zombie") && icontains(clip.name, "zombie")) continue;
+                if (!icontains(candidate, "carry") && icontains(clip.name, "carry")) continue;
+
+                if (!roleDesc.empty()) {
+                    std::printf("[Anim] Role '%s' mapped (Prefix): '%s'\n", roleDesc.c_str(), clip.name.c_str());
+                }
+                return &clip;
+            }
+        }
+    }
+
+    // Pass 3: Substring contains candidate name
+    for (const auto& candidate : candidateNames) {
+        for (const auto& clip : clips) {
+            if (icontains(clip.name, candidate)) {
+                if (!icontains(candidate, "zombie") && icontains(clip.name, "zombie")) continue;
+                if (!icontains(candidate, "carry") && icontains(clip.name, "carry")) continue;
+
+                if (!roleDesc.empty()) {
+                    std::printf("[Anim] Role '%s' mapped (Substring): '%s'\n", roleDesc.c_str(), clip.name.c_str());
+                }
+                return &clip;
+            }
+        }
+    }
+
+    if (!roleDesc.empty()) {
+        std::printf("[Anim WARNING] No clip found for role '%s'\n", roleDesc.c_str());
     }
     return nullptr;
 }
@@ -184,4 +315,26 @@ void AnimationLibrary::printClipNames() const {
     for (size_t i = 0; i < clips.size(); ++i) {
         std::printf(" [%zu] '%s' (duration: %.2fs)\n", i, clips[i].name.c_str(), clips[i].duration);
     }
+    std::fflush(stdout);
+}
+
+float AnimationLibrary::checkRetarget(const AnimationClip& clip, const std::vector<std::string>& skeletonBoneNames) const {
+    if (clip.channels.empty() || skeletonBoneNames.empty()) return 0.0f;
+    size_t matched = 0;
+    for (const auto& chan : clip.channels) {
+        for (const auto& bone : skeletonBoneNames) {
+            if (iequals(chan.targetNodeName, bone)) {
+                ++matched;
+                break;
+            }
+        }
+    }
+    float pct = (100.0f * (float)matched) / (float)clip.channels.size();
+    std::printf("[Anim Retarget] Clip '%s': %zu/%zu channels matched (%.1f%%)\n",
+                clip.name.c_str(), matched, clip.channels.size(), pct);
+    if (pct < 90.0f) {
+        std::printf("[Anim Retarget WARNING] Clip '%s' has low match percentage (%.1f%% < 90%%)!\n",
+                    clip.name.c_str(), pct);
+    }
+    return pct;
 }

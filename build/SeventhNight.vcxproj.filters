@@ -7,7 +7,13 @@
     <ClCompile Include="D:\The Seventh Night\src\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\The Seventh Night\src\core\Assets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="D:\The Seventh Night\src\anim\Animation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\The Seventh Night\src\anim\Animator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="D:\The Seventh Night\src\anim\SkinnedModel.cpp">
