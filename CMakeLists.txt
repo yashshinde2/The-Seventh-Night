@@ -19,6 +19,7 @@ add_executable(SeventhNight
 )
 
 target_include_directories(SeventhNight PRIVATE
+    "C:/vcpkg/installed/x64-windows/include"
     ${CGLTF_INCLUDE_DIRS}
     ${STB_INCLUDE_DIRS}
     src
