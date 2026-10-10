@@ -56,10 +56,32 @@ GLuint loadTexture(const cgltf_image* img, const std::string& baseDir,
         std::string uri = img->uri;
         cgltf_decode_uri(&uri[0]);
         uri.resize(std::strlen(uri.c_str()));
-        px = stbi_load((baseDir + uri).c_str(), &w, &h, &n, 4);
+
+        // Extract raw filename
+        std::string filename = uri;
+        size_t lastSlash = filename.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            filename = filename.substr(lastSlash + 1);
+        }
+
+        // Candidate paths for Quaternius pack folder structures
+        std::vector<std::string> candidates = {
+            baseDir + uri,
+            baseDir + filename,
+            baseDir + "Textures/" + filename,
+            baseDir + "../Textures/" + filename,
+            baseDir + "../../Textures/" + filename,
+            baseDir + "../" + filename,
+            baseDir + "../../" + filename
+        };
+
+        for (const auto& candidate : candidates) {
+            px = stbi_load(candidate.c_str(), &w, &h, &n, 4);
+            if (px) break;
+        }
     }
     if (!px) {
-        std::fprintf(stderr, "Could not load texture for a material.\n");
+        std::fprintf(stderr, "Could not load texture '%s' for a material.\n", img->uri ? img->uri : "<buffer>");
         cache[img] = 0;
         return 0;
     }

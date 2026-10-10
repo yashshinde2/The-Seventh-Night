@@ -49,15 +49,20 @@ public:
     float jumpForce = 7.0f;
     float gravity = 18.0f;
 
+    float coyoteTimer = 0.0f;
+    float jumpBufferTimer = 0.0f;
+
     AABB getAABB() const {
         glm::vec3 half = size * 0.5f;
         return AABB{
-            glm::vec3(position.x - half.x, position.y, currentLaneZ - half.z),
-            glm::vec3(position.x + half.x, position.y + size.y, currentLaneZ + half.z)
+            glm::vec3(position.x - half.x, position.y, position.z - half.z),
+            glm::vec3(position.x + half.x, position.y + size.y, position.z + half.z)
         };
     }
 
-    void update(float dt, const std::vector<ObstaclePlatform>& platforms, bool moveLeft, bool moveRight, bool sprint, bool jumpRequested, bool dropRequested);
+    void update(float dt, const std::vector<ObstaclePlatform>& platforms,
+                bool moveLeft, bool moveRight, bool sprint, bool jumpRequested, bool dropRequested,
+                bool moveForward = false, bool moveBackward = false);
 };
 
 void runPhysicsPhase0Test();

@@ -1,22 +1,45 @@
 #include "PhysicsEngine.h"
 #include <algorithm>
 
+#include <cmath>
+
 void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& platforms,
-                            bool moveLeft, bool moveRight, bool sprint, bool jumpRequested, bool dropRequested) {
-    // Smooth lane shift interpolation
-    float targetZ = laneZValues[targetLane];
-    currentLaneZ += (targetZ - currentLaneZ) * std::min(1.0f, 12.0f * dt);
-    position.z = currentLaneZ;
+                            bool moveLeft, bool moveRight, bool sprint, bool jumpRequested, bool dropRequested,
+                            bool moveForward, bool moveBackward) {
+    // Jump buffering
+    if (jumpRequested) jumpBufferTimer = 0.12f;
+    else jumpBufferTimer = std::max(0.0f, jumpBufferTimer - dt);
 
-    // Horizontal Movement
+    // Coyote timer
+    if (onGround) coyoteTimer = 0.10f;
+    else coyoteTimer = std::max(0.0f, coyoteTimer - dt);
+
+    // Multi-directional planar input (X and Z)
+    float inX = 0.0f;
+    float inZ = 0.0f;
+    if (moveLeft) inX -= 1.0f;
+    if (moveRight) inX += 1.0f;
+    if (moveForward) inZ -= 1.0f;  // -Z into background
+    if (moveBackward) inZ += 1.0f; // +Z towards foreground
+
+    float inLen = std::sqrt(inX * inX + inZ * inZ);
+    if (inLen > 0.001f) {
+        inX /= inLen;
+        inZ /= inLen;
+    }
+
     float currentSpeed = moveSpeed * (sprint ? sprintMultiplier : 1.0f);
-    float targetVelX = 0.0f;
-    if (moveLeft) targetVelX -= currentSpeed;
-    if (moveRight) targetVelX += currentSpeed;
+    float targetVelX = inX * currentSpeed;
+    float targetVelZ = inZ * currentSpeed * 0.85f;
 
-    // Acceleration smoothing
-    velocity.x += (targetVelX - velocity.x) * std::min(1.0f, 15.0f * dt);
+    // Smooth acceleration & decay
+    float smoothFactor = 1.0f - std::exp(-16.0f * dt);
+    velocity.x += (targetVelX - velocity.x) * smoothFactor;
+    velocity.z += (targetVelZ - velocity.z) * smoothFactor;
+
     position.x += velocity.x * dt;
+    position.z = std::max(-3.5f, std::min(3.5f, position.z + velocity.z * dt));
+    currentLaneZ = position.z;
 
     // AABB X Collision Check against environment platforms
     AABB boxX = getAABB();
@@ -35,19 +58,21 @@ void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& pla
         }
     }
 
-    // Vertical Jump & Gravity Update
-    if (jumpRequested && onGround) {
+    // Vertical Jump with coyote time & buffer
+    if (jumpBufferTimer > 0.0f && (onGround || coyoteTimer > 0.0f)) {
         velocity.y = jumpForce;
         onGround = false;
+        coyoteTimer = 0.0f;
+        jumpBufferTimer = 0.0f;
     }
 
     velocity.y -= gravity * dt;
     position.y += velocity.y * dt;
 
-    // AABB Y Collision Check & Floor Snapping
+    // Floor & Platform Landing
     onGround = false;
 
-    // Check ground plane (y = 0) fallback
+    // Ground plane (y = 0) fallback
     if (position.y <= 0.0f) {
         position.y = 0.0f;
         velocity.y = 0.0f;

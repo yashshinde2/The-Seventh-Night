@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "Model.h"
 #include "core/Assets.h"
@@ -73,28 +74,39 @@ out vec4 frag;
 void main() {
     vec4 base = uColor;
     if (uHasTex == 1) base *= texture(uTex, vUV);
+
+    // Alpha cutout for leaves, ferns, vines, fences
+    if (base.a < 0.25) discard;
+
     vec3 n = normalize(vNrm);
     if (!gl_FrontFacing) n = -n;
 
-    // Atmospheric midnight ambient and moon lighting
-    vec3 ambient = vec3(0.22, 0.28, 0.38);
-    vec3 moon = vec3(0.35, 0.45, 0.65) * max(dot(n, normalize(vec3(-0.4, 1.0, 0.6))), 0.0);
+    // Rich midnight ambient and cool directional moonlight
+    vec3 ambient = vec3(0.32, 0.38, 0.46);
+    vec3 moonDir = normalize(vec3(-0.4, 1.0, 0.6));
+    float diff = max(dot(n, moonDir), 0.0);
+    vec3 moon = vec3(0.42, 0.54, 0.72) * diff;
 
-    // Warm lantern glow
+    // Specular highlight for cobblestone, metal, and damp wood
+    vec3 viewDir = normalize(uCamPos - vPos);
+    vec3 halfDir = normalize(moonDir + viewDir);
+    float spec = pow(max(dot(n, halfDir), 0.0), 16.0) * 0.12;
+
+    // Warm Aarav lantern glow
     vec3 L = uLightPos - vPos;
     float d = length(L);
-    L /= d;
-    float att = 1.0 / (1.0 + 0.12 * d + 0.015 * d * d);
-    vec3 lamp = vec3(1.0, 0.72, 0.35) * max(dot(n, L), 0.0) * att * 3.5 * uWill;
+    L /= max(d, 0.001);
+    float att = 1.0 / (1.0 + 0.08 * d + 0.012 * d * d);
+    vec3 lamp = vec3(1.0, 0.76, 0.42) * max(dot(n, L), 0.0) * att * 3.8 * max(uWill, 0.25);
 
     // Mauli Red Thread glow
-    vec3 redLight = vec3(0.95, 0.25, 0.20) * uRedGlow * max(dot(n, L), 0.0) * att * 2.0;
+    vec3 redLight = vec3(0.95, 0.25, 0.20) * uRedGlow * max(dot(n, L), 0.0) * att * 2.2;
 
-    vec3 col = base.rgb * (ambient + moon + lamp + redLight);
+    vec3 col = base.rgb * (ambient + moon + lamp + redLight) + vec3(spec);
 
-    // Dynamic fog attenuation
+    // Dynamic distance mist attenuation
     float fd = length(uCamPos - vPos);
-    float fog = 1.0 - exp(-pow(fd * 0.022, 1.4));
+    float fog = 1.0 - exp(-pow(fd * 0.018, 1.35));
     vec3 fogColor = mix(vec3(0.08, 0.12, 0.18), vec3(0.30, 0.08, 0.06), uRedGlow * 0.5);
     col = mix(col, fogColor, fog);
 
@@ -179,63 +191,174 @@ int main(int argc, char** argv) {
         fs::path assetsRoot = AssetManager::findAssetsRoot(argv[0]);
         AssetManager::printDiscoveredAssets(assetsRoot);
 
-        // Load Nature Props dynamically from assetsRoot
+        // Model storage and named lookup
         std::vector<Model> propTemplates;
-        fs::path natureDir = assetsRoot / "Stylized Nature MegaKit[Standard]" / "glTF";
-        std::vector<fs::path> relPropPaths = {
-            natureDir / "CommonTree_1.gltf",
-            natureDir / "CommonTree_2.gltf",
-            natureDir / "DeadTree_1.gltf",
-            natureDir / "DeadTree_2.gltf",
-            natureDir / "TwistedTree_1.gltf",
-            natureDir / "Rock_Medium_1.gltf",
-            natureDir / "Rock_Medium_2.gltf",
-            natureDir / "Bush_Common.gltf",
-            natureDir / "Fern_1.gltf",
-            natureDir / "Mushroom_Common.gltf"
+        std::map<std::string, size_t> modelMap;
+
+        auto loadProp = [&](const std::string& name, const fs::path& p) {
+            Model m;
+            bool ok = m.loadGLB(p.string());
+            if (ok) {
+                modelMap[name] = propTemplates.size();
+                propTemplates.push_back(std::move(m));
+                std::printf("[Asset] Loaded %-28s -> SUCCESS\n", name.c_str());
+            } else {
+                std::printf("[Asset] Loaded %-28s -> FAILED\n", name.c_str());
+            }
         };
 
-        for (const auto& path : relPropPaths) {
-            Model m;
-            bool ok = m.loadGLB(path.string());
-            std::printf("[Phase 1] Load Prop '%s': %s\n", path.filename().string().c_str(), ok ? "SUCCESS" : "FAILED");
-            if (ok) propTemplates.push_back(std::move(m));
-        }
+        // 1. Medieval Village Assets
+        fs::path villageDir = assetsRoot / "Medieval Village MegaKit[Standard]" / "Medieval Village MegaKit[Standard]" / "glTF";
+        loadProp("wagon", villageDir / "Prop_Wagon.gltf");
+        loadProp("crate", villageDir / "Prop_Crate.gltf");
+        loadProp("fenceSingle", villageDir / "Prop_WoodenFence_Single.gltf");
+        loadProp("fenceExt", villageDir / "Prop_WoodenFence_Extension1.gltf");
+        loadProp("chimney", villageDir / "Prop_Chimney.gltf");
+        loadProp("wallPlasterDoor", villageDir / "Wall_Plaster_Door_Round.gltf");
+        loadProp("wallPlasterStraight", villageDir / "Wall_Plaster_Straight.gltf");
+        loadProp("wallPlasterWindow", villageDir / "Wall_Plaster_Window_Wide_Flat.gltf");
+        loadProp("wallBrickStraight", villageDir / "Wall_UnevenBrick_Straight.gltf");
+        loadProp("roof4x6", villageDir / "Roof_RoundTiles_4x6.gltf");
+        loadProp("roof4x4", villageDir / "Roof_RoundTiles_4x4.gltf");
+        loadProp("roofFront", villageDir / "Roof_Front_Brick4.gltf");
+        loadProp("cornerBrick", villageDir / "Corner_Exterior_Brick.gltf");
 
-        // Additional CLI models
+        // 2. Downtown City Assets
+        fs::path cityDir = assetsRoot / "Downtown City MegaKit[Standard]" / "Exports" / "glTF (Godot)";
+        loadProp("cityBldSmall", cityDir / "Building_Small_1.gltf");
+        loadProp("cityBldMed", cityDir / "Building_Medium_2_001.gltf");
+        loadProp("cityBldLarge", cityDir / "Building_Large_2.gltf");
+        loadProp("cityStreet", cityDir / "Street_2Lane.gltf");
+        loadProp("citySidewalk", cityDir / "Sidewalk_Straight_3m.gltf");
+
+        // 3. Stylized Nature Assets
+        fs::path natureDir = assetsRoot / "Stylized Nature MegaKit[Standard]" / "glTF";
+        loadProp("treeCommon1", natureDir / "CommonTree_1.gltf");
+        loadProp("treeCommon2", natureDir / "CommonTree_2.gltf");
+        loadProp("treeDead1", natureDir / "DeadTree_1.gltf");
+        loadProp("treeDead2", natureDir / "DeadTree_2.gltf");
+        loadProp("treeTwisted", natureDir / "TwistedTree_1.gltf");
+        loadProp("rock1", natureDir / "Rock_Medium_1.gltf");
+        loadProp("rock2", natureDir / "Rock_Medium_2.gltf");
+        loadProp("bush", natureDir / "Bush_Common.gltf");
+        loadProp("fern", natureDir / "Fern_1.gltf");
+        loadProp("mushroom", natureDir / "Mushroom_Common.gltf");
+
+        // Additional CLI models if provided
         for (int i = 1; i < argc; ++i) {
             Model m;
             if (m.loadGLB(argv[i])) propTemplates.push_back(std::move(m));
         }
 
-        if (propTemplates.empty()) {
-            std::fprintf(stderr, "\n[WARNING] Phase 1: Zero environment props were loaded!\n");
+        std::vector<LevelProp> worldProps;
+        auto placeProp = [&](const std::string& name, glm::vec3 pos, float scale = 1.0f, float rotY = 0.0f) {
+            auto it = modelMap.find(name);
+            if (it != modelMap.end()) {
+                worldProps.push_back({it->second, pos, scale, rotY});
+            }
+        };
+
+        // --- Assemble World Across Distinct Narrative Zones ---
+
+        // ==========================================
+        // ZONE 1: Western Industrial City Outskirts (X: -120 to -30)
+        // ==========================================
+        // Street paving and sidewalks along ground
+        for (float x = -115.0f; x <= -30.0f; x += 12.0f) {
+            placeProp("cityStreet", glm::vec3(x, 0.0f, 0.0f), 1.0f, 0.0f);
+            placeProp("citySidewalk", glm::vec3(x, 0.0f, 3.2f), 1.0f, 0.0f);
         }
 
-        // Generate Dense Forest Level Layout along lanes
-        const float laneZ[3] = {2.0f, 0.0f, -2.0f};
-        std::vector<LevelProp> worldProps;
+        // City skyline background architecture
+        placeProp("cityBldLarge", glm::vec3(-112.0f, 0.0f, -6.5f), 1.0f, 0.0f);
+        placeProp("cityBldMed",   glm::vec3(-95.0f,  0.0f, -5.5f), 1.0f, 0.0f);
+        placeProp("cityBldLarge", glm::vec3(-78.0f,  0.0f, -6.0f), 1.1f, 180.0f);
+        placeProp("cityBldMed",   glm::vec3(-62.0f,  0.0f, -5.0f), 1.0f, 0.0f);
+        placeProp("cityBldSmall", glm::vec3(-48.0f,  0.0f, -4.5f), 1.0f, 0.0f);
+        placeProp("cityBldSmall", glm::vec3(-36.0f,  0.0f, -4.0f), 0.95f, 0.0f);
 
-        if (!propTemplates.empty()) {
-            // Background Lane Trees & Rocks (z = -3.5 to -1.5)
-            for (float x = -80.0f; x <= 120.0f; x += 4.5f) {
-                size_t modelIdx = (size_t)(std::abs((int)(x * 7.0f)) % propTemplates.size());
-                float scale = 0.8f + 0.4f * std::sin(x * 0.3f);
-                float rot = (float)((int)(x * 13.0f) % 360);
-                worldProps.push_back({modelIdx, glm::vec3(x, 0.0f, laneZ[2] - 1.5f), scale, rot});
+        // Urban transition props (crates, encroaching dead trees and vines)
+        for (float x = -105.0f; x <= -35.0f; x += 18.0f) {
+            placeProp("crate", glm::vec3(x + 2.0f, 0.0f, 2.2f), 1.2f, 15.0f);
+            placeProp("crate", glm::vec3(x + 2.8f, 0.0f, 2.0f), 1.0f, 40.0f);
+            placeProp("crate", glm::vec3(x + 2.4f, 0.9f, 2.1f), 0.9f, -10.0f);
+            placeProp("treeDead1", glm::vec3(x - 5.0f, 0.0f, -3.2f), 0.9f, 30.0f);
+        }
+
+        // ==========================================
+        // ZONE 2: The Medieval Village of Kaalvan (X: -28 to +28)
+        // ==========================================
+        // Cottage 1: Mill Outpost & Blacksmith (X = -20)
+        placeProp("wallPlasterDoor",    glm::vec3(-20.0f, 0.0f, -3.2f), 1.0f, 0.0f);
+        placeProp("wallPlasterWindow",  glm::vec3(-18.0f, 0.0f, -3.2f), 1.0f, 0.0f);
+        placeProp("wallPlasterStraight",glm::vec3(-22.0f, 0.0f, -3.2f), 1.0f, 0.0f);
+        placeProp("roof4x6",            glm::vec3(-20.0f, 2.4f, -3.2f), 1.05f, 0.0f);
+        placeProp("chimney",            glm::vec3(-18.5f, 3.8f, -3.2f), 1.0f, 0.0f);
+        placeProp("wagon",              glm::vec3(-16.5f, 0.0f, -1.2f), 1.0f, -25.0f);
+        placeProp("crate",              glm::vec3(-22.5f, 0.0f, -1.5f), 1.1f, 15.0f);
+        placeProp("crate",              glm::vec3(-21.8f, 0.0f, -1.6f), 1.0f, 30.0f);
+        placeProp("crate",              glm::vec3(-22.2f, 0.9f, -1.5f), 0.8f, 5.0f);
+
+        // Wooden fences lining the village path
+        for (float x = -26.0f; x <= -14.0f; x += 3.0f) {
+            placeProp("fenceSingle", glm::vec3(x, 0.0f, 2.8f), 1.0f, 0.0f);
+        }
+
+        // Cottage 2: Village Elder's Hearth (X = -5)
+        placeProp("wallBrickStraight",  glm::vec3(-7.0f, 0.0f, -3.4f), 1.0f, 0.0f);
+        placeProp("wallPlasterDoor",    glm::vec3(-5.0f, 0.0f, -3.4f), 1.0f, 0.0f);
+        placeProp("wallPlasterWindow",  glm::vec3(-3.0f, 0.0f, -3.4f), 1.0f, 0.0f);
+        placeProp("roof4x6",            glm::vec3(-5.0f, 2.4f, -3.4f), 1.05f, 0.0f);
+        placeProp("chimney",            glm::vec3(-3.5f, 3.8f, -3.4f), 1.0f, 0.0f);
+        placeProp("fenceExt",           glm::vec3(-8.5f, 0.0f, -1.8f), 1.0f, 10.0f);
+        placeProp("fenceSingle",        glm::vec3(-1.5f, 0.0f, -1.8f), 1.0f, -10.0f);
+        placeProp("wagon",              glm::vec3(-8.0f, 0.0f, -0.8f), 1.0f, 15.0f);
+
+        // Village Center & Sacred Shrine (X = +6)
+        placeProp("cornerBrick", glm::vec3(4.5f, 0.0f, -2.6f), 1.0f, 45.0f);
+        placeProp("cornerBrick", glm::vec3(7.5f, 0.0f, -2.6f), 1.0f, -45.0f);
+        placeProp("rock1",       glm::vec3(6.0f, 0.0f, -2.2f), 1.2f, 0.0f);
+        placeProp("crate",       glm::vec3(8.5f, 0.0f, -1.2f), 1.0f, 10.0f);
+        placeProp("crate",       glm::vec3(9.2f, 0.0f, -1.4f), 1.0f, 35.0f);
+        placeProp("fern",        glm::vec3(5.0f, 0.0f, 1.2f), 1.0f, 0.0f);
+        placeProp("fern",        glm::vec3(7.0f, 0.0f, 1.4f), 1.1f, 45.0f);
+
+        // Cottage 3: Forest Edge Gatehouse (X = +18)
+        placeProp("wallPlasterDoor",    glm::vec3(18.0f, 0.0f, -3.2f), 1.0f, 0.0f);
+        placeProp("wallBrickStraight",  glm::vec3(20.0f, 0.0f, -3.2f), 1.0f, 0.0f);
+        placeProp("roof4x4",            glm::vec3(19.0f, 2.4f, -3.2f), 1.05f, 0.0f);
+        placeProp("chimney",            glm::vec3(19.8f, 3.8f, -3.2f), 1.0f, 0.0f);
+        placeProp("wagon",              glm::vec3(15.0f, 0.0f, -1.2f), 1.0f, -10.0f);
+        for (float x = 12.0f; x <= 26.0f; x += 3.0f) {
+            placeProp("fenceSingle", glm::vec3(x, 0.0f, 2.8f), 1.0f, 0.0f);
+        }
+
+        // ==========================================
+        // ZONE 3: Ancient Kaalvan Deep Forest (X: +28 to +120)
+        // ==========================================
+        // Background dense forest canopy (z = -3.5 to -6.5)
+        for (float x = 28.0f; x <= 120.0f; x += 4.5f) {
+            std::string tName = ((int)x % 3 == 0) ? "treeCommon1" : (((int)x % 3 == 1) ? "treeCommon2" : "treeTwisted");
+            float scale = 0.85f + 0.35f * std::sin(x * 0.4f);
+            float rot = (float)((int)(x * 19.0f) % 360);
+            placeProp(tName, glm::vec3(x, 0.0f, -4.2f + 1.2f * std::sin(x * 0.2f)), scale, rot);
+            if ((int)x % 9 == 0) {
+                placeProp("treeDead2", glm::vec3(x + 2.0f, 0.0f, -5.5f), 1.1f, rot + 45.0f);
             }
-            // Middle Lane Rocks & Bushes
-            for (float x = -75.0f; x <= 115.0f; x += 8.0f) {
-                size_t modelIdx = 5 + (size_t)(std::abs((int)(x * 3.0f)) % 4);
-                if (modelIdx < propTemplates.size()) {
-                    worldProps.push_back({modelIdx, glm::vec3(x, 0.0f, laneZ[1]), 1.0f, x * 15.0f});
-                }
-            }
-            // Foreground Lane Trees & Ferns (z = 2.5)
-            for (float x = -70.0f; x <= 110.0f; x += 11.0f) {
-                size_t modelIdx = (size_t)(std::abs((int)(x * 5.0f)) % propTemplates.size());
-                worldProps.push_back({modelIdx, glm::vec3(x, 0.0f, laneZ[0] + 1.2f), 1.2f, x * 25.0f});
-            }
+        }
+
+        // Midground rocks, ferns, mushrooms, and bushes
+        for (float x = 32.0f; x <= 118.0f; x += 7.0f) {
+            placeProp("rock1", glm::vec3(x, 0.0f, -0.8f + 0.6f * std::sin(x)), 0.9f, x * 15.0f);
+            placeProp("bush",  glm::vec3(x + 2.5f, 0.0f, 0.2f), 1.0f, x * 30.0f);
+            placeProp("mushroom", glm::vec3(x - 1.2f, 0.0f, -0.3f), 1.2f, x * 12.0f);
+        }
+
+        // Foreground silhouette framing (z = 2.4 to 3.2)
+        for (float x = 30.0f; x <= 115.0f; x += 11.0f) {
+            placeProp("treeTwisted", glm::vec3(x, 0.0f, 3.2f), 1.25f, x * 22.0f);
+            placeProp("fern", glm::vec3(x + 1.5f, 0.0f, 2.5f), 1.1f, x * 17.0f);
+            placeProp("fern", glm::vec3(x - 1.5f, 0.0f, 2.6f), 1.0f, x * 29.0f);
         }
 
         // Load Skinned Character & Animations dynamically from assetsRoot
@@ -272,16 +395,25 @@ int main(int argc, char** argv) {
         CharacterPhysics playerPhysics;
         PlayerMeters meters;
 
+        // Ground and interactive village/city platforms
         std::vector<ObstaclePlatform> platforms;
         platforms.push_back({AABB{glm::vec3(-150.0f, -1.0f, -10.0f), glm::vec3(150.0f, 0.0f, 10.0f)}, SurfaceType::Normal, false, 1});
+        // Wagon platform at X = -16.5
+        platforms.push_back({AABB{glm::vec3(-17.5f, 0.0f, -2.0f), glm::vec3(-15.5f, 0.85f, -0.4f)}, SurfaceType::OneWay, false, 1});
+        // Crate stack platform at X = -22.0
+        platforms.push_back({AABB{glm::vec3(-23.0f, 0.0f, -2.5f), glm::vec3(-21.0f, 0.95f, -0.6f)}, SurfaceType::OneWay, false, 1});
+        // Wagon platform at X = 15.0
+        platforms.push_back({AABB{glm::vec3(14.0f, 0.0f, -2.0f), glm::vec3(16.0f, 0.85f, -0.4f)}, SurfaceType::OneWay, false, 1});
 
         float camX = 0.0f;
         double lastTime = glfwGetTime();
 
         std::printf("\n=== The Seventh Night Engine Initialized ===\n");
         std::printf("Controls:\n");
-        std::printf(" A/D: Move | W/S: Change Depth Lane | Space: Jump | Shift: Sprint\n");
-        std::printf(" Q/E: Lower/Raise Will | Ctrl: Steady Breath | R: Red Thread Sense | Esc: Quit\n");
+        std::printf("  A / D (or Left / Right Arrow): Move Left / Right\n");
+        std::printf("  W / S (or Up / Down Arrow):    Move Forward / Backward (Depth)\n");
+        std::printf("  Space: Jump | Left Shift: Sprint\n");
+        std::printf("  Q / E: Lower / Raise Will | Ctrl: Steady Breath | R: Red Thread Sense | Esc: Quit\n");
         std::fflush(stdout);
 
         // Run Phase 0 Physics Test Verification
@@ -295,40 +427,34 @@ int main(int argc, char** argv) {
             glfwPollEvents();
             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
 
-            // Movement & Inputs
-            bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-            bool moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-            bool sprint = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+            // Movement & Inputs in all directions
+            bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
+            bool moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
+            bool moveForward = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS;
+            bool moveBackward = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS;
+            bool sprint = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
             bool jumpReq = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-            bool dropReq = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+            bool dropReq = moveBackward && glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
 
-            static bool wPressed = false, sPressed = false;
-            bool w = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-            bool s = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS && !dropReq;
-            if (w && !wPressed) playerPhysics.targetLane = std::min(playerPhysics.targetLane + 1, 2);
-            if (s && !sPressed) playerPhysics.targetLane = std::max(playerPhysics.targetLane - 1, 0);
-            wPressed = w;
-            sPressed = s;
-
-            bool steadyBreath = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && !moveLeft && !moveRight;
+            bool steadyBreath = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && !moveLeft && !moveRight && !moveForward && !moveBackward;
             bool redThread = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
 
             if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) meters.will = std::max(0.0f, meters.will - 0.6f * dt);
             if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) meters.will = std::min(1.0f, meters.will + 0.6f * dt);
 
-            // Physics & Meters Update
-            playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq);
-            meters.update(dt, false, sprint && (moveLeft || moveRight), steadyBreath, redThread);
+            // Physics & Meters Update (with 360-degree planar input)
+            playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
+            meters.update(dt, false, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
 
-            // Animation Update (Phase 2 & 3 State Machine & Blending)
+            // Animation Update (Phase 2 & 3 State Machine, Blending & 360-deg Facing)
             if (hasSkinnedPlayer) {
                 animator.update(dt, playerPhysics, playerCharacter);
             }
 
-            // Smooth Camera Tracking
+            // Smooth Cinematic Camera Tracking with depth
             camX += (playerPhysics.position.x - camX) * std::min(1.0f, 4.0f * dt);
-            glm::vec3 camPos(camX, 2.5f, 9.5f);
-            glm::vec3 target(camX, 1.2f, 0.0f);
+            glm::vec3 camPos(camX, 2.6f, 10.0f);
+            glm::vec3 target(camX, 1.3f, playerPhysics.position.z * 0.35f);
             glm::mat4 view = glm::lookAt(camPos, target, glm::vec3(0, 1, 0));
 
             int fbw, fbh;
