@@ -20,6 +20,8 @@
 #include "anim/Animator.h"
 #include "physics/PhysicsEngine.h"
 #include "game/GameMeters.h"
+#include "environment/SkySystem.h"
+#include "environment/WildlifeSystem.h"
 
 static const char* kVertexShader = R"(
 #version 330 core
@@ -243,6 +245,12 @@ int main(int argc, char** argv) {
         loadProp("bush", natureDir / "Bush_Common.gltf");
         loadProp("fern", natureDir / "Fern_1.gltf");
         loadProp("mushroom", natureDir / "Mushroom_Common.gltf");
+        loadProp("rockPath", natureDir / "RockPath_Round_Wide.gltf");
+        loadProp("grassShort", natureDir / "Grass_Common_Short.gltf");
+        loadProp("grassTall", natureDir / "Grass_Wispy_Tall.gltf");
+        loadProp("flowerGroup", natureDir / "Flower_3_Group.gltf");
+        loadProp("pine", natureDir / "Pine_1.gltf");
+        loadProp("pebble", natureDir / "Pebble_Round_1.gltf");
 
         // Additional CLI models if provided
         for (int i = 1; i < argc; ++i) {
@@ -277,17 +285,29 @@ int main(int argc, char** argv) {
         placeProp("cityBldSmall", glm::vec3(-48.0f,  0.0f, -4.5f), 1.0f, 0.0f);
         placeProp("cityBldSmall", glm::vec3(-36.0f,  0.0f, -4.0f), 0.95f, 0.0f);
 
-        // Urban transition props (crates, encroaching dead trees and vines)
-        for (float x = -105.0f; x <= -35.0f; x += 18.0f) {
+        // Urban transition props (crates, encroaching dead trees, weeds, and pebbles)
+        for (float x = -105.0f; x <= -35.0f; x += 16.0f) {
             placeProp("crate", glm::vec3(x + 2.0f, 0.0f, 2.2f), 1.2f, 15.0f);
             placeProp("crate", glm::vec3(x + 2.8f, 0.0f, 2.0f), 1.0f, 40.0f);
             placeProp("crate", glm::vec3(x + 2.4f, 0.9f, 2.1f), 0.9f, -10.0f);
             placeProp("treeDead1", glm::vec3(x - 5.0f, 0.0f, -3.2f), 0.9f, 30.0f);
+            placeProp("grassShort", glm::vec3(x - 2.0f, 0.0f, 2.8f), 0.8f, x * 7.0f);
+            placeProp("pebble", glm::vec3(x + 4.0f, 0.0f, 1.2f), 1.0f, x * 13.0f);
         }
 
         // ==========================================
         // ZONE 2: The Medieval Village of Kaalvan (X: -28 to +28)
         // ==========================================
+        // Cobblestone stone path connecting the village cottages
+        for (float x = -26.0f; x <= 26.0f; x += 3.8f) {
+            placeProp("rockPath", glm::vec3(x, 0.015f, 0.0f), 1.15f, (float)((int)(x * 5) % 180));
+            placeProp("grassShort", glm::vec3(x + 1.2f, 0.0f, -1.5f), 0.9f, x * 17.0f);
+            placeProp("pebble", glm::vec3(x - 1.0f, 0.0f, 1.4f), 1.1f, x * 23.0f);
+        }
+        for (float x = -20.0f; x <= 20.0f; x += 5.5f) {
+            placeProp("flowerGroup", glm::vec3(x, 0.0f, 1.8f), 0.85f, x * 35.0f);
+        }
+
         // Cottage 1: Mill Outpost & Blacksmith (X = -20)
         placeProp("wallPlasterDoor",    glm::vec3(-20.0f, 0.0f, -3.2f), 1.0f, 0.0f);
         placeProp("wallPlasterWindow",  glm::vec3(-18.0f, 0.0f, -3.2f), 1.0f, 0.0f);
@@ -345,6 +365,9 @@ int main(int argc, char** argv) {
             if ((int)x % 9 == 0) {
                 placeProp("treeDead2", glm::vec3(x + 2.0f, 0.0f, -5.5f), 1.1f, rot + 45.0f);
             }
+            if ((int)x % 7 == 0) {
+                placeProp("pine", glm::vec3(x - 1.5f, 0.0f, -6.5f), 1.3f, rot + 90.0f);
+            }
         }
 
         // Midground rocks, ferns, mushrooms, and bushes
@@ -352,6 +375,7 @@ int main(int argc, char** argv) {
             placeProp("rock1", glm::vec3(x, 0.0f, -0.8f + 0.6f * std::sin(x)), 0.9f, x * 15.0f);
             placeProp("bush",  glm::vec3(x + 2.5f, 0.0f, 0.2f), 1.0f, x * 30.0f);
             placeProp("mushroom", glm::vec3(x - 1.2f, 0.0f, -0.3f), 1.2f, x * 12.0f);
+            placeProp("grassTall", glm::vec3(x + 1.0f, 0.0f, -0.5f), 1.0f, x * 21.0f);
         }
 
         // Foreground silhouette framing (z = 2.4 to 3.2)
@@ -394,6 +418,14 @@ int main(int argc, char** argv) {
 
         CharacterPhysics playerPhysics;
         PlayerMeters meters;
+
+        // Realistic Sky, Full Moon, Stars, and Sahyadri Mountains
+        SkySystem skySystem;
+        skySystem.init();
+
+        // Living Wildlife: Animated Crows, Forest Stags in Mist, Bioluminescent Fireflies
+        WildlifeSystem wildlifeSystem;
+        wildlifeSystem.init();
 
         // Ground and interactive village/city platforms
         std::vector<ObstaclePlatform> platforms;
@@ -446,6 +478,10 @@ int main(int argc, char** argv) {
             playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
             meters.update(dt, false, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
 
+            // Update Living Environment & Wildlife
+            skySystem.update(dt);
+            wildlifeSystem.update(dt, playerPhysics.position);
+
             // Animation Update (Phase 2 & 3 State Machine, Blending & 360-deg Facing)
             if (hasSkinnedPlayer) {
                 animator.update(dt, playerPhysics, playerCharacter);
@@ -464,26 +500,30 @@ int main(int argc, char** argv) {
 
             // Render Pass
             glViewport(0, 0, fbw, fbh);
-            glClearColor(0.08f, 0.12f, 0.18f, 1.0f);
+            glClearColor(0.015f, 0.035f, 0.075f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            // 1. Draw Celestial Midnight Sky, Stars, Full Moon, and Parallax Sahyadri Mountains
+            skySystem.draw(view, proj, camPos);
+
+            // 2. Main 3D World Geometry Pass
             glUseProgram(program);
             glUniformMatrix4fv(glGetUniformLocation(program, "uView"), 1, GL_FALSE, &view[0][0]);
             glUniformMatrix4fv(glGetUniformLocation(program, "uProj"), 1, GL_FALSE, &proj[0][0]);
             glUniform3fv(glGetUniformLocation(program, "uCamPos"), 1, &camPos[0]);
 
-            glm::vec3 lanternPos = playerPhysics.position + glm::vec3(0.3f, 1.2f, 0.5f);
+            glm::vec3 lanternPos = playerPhysics.position + glm::vec3(0.0f, 1.2f, 0.4f);
             glUniform3fv(glGetUniformLocation(program, "uLightPos"), 1, &lanternPos[0]);
 
             float flicker = 0.92f + 0.08f * std::sin((float)now * 17.0f) * std::sin((float)now * 5.3f);
             glUniform1f(glGetUniformLocation(program, "uWill"), meters.will * flicker);
             glUniform1f(glGetUniformLocation(program, "uRedGlow"), meters.redThreadGlow);
 
-            // Draw Ground
+            // Draw Ground Plane
             glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
             ground.draw(program, glm::mat4(1.0f));
 
-            // Draw World Forest Props
+            // Draw World Props (City, Village, Forest, Ground paths)
             for (const auto& prop : worldProps) {
                 if (prop.modelIdx < propTemplates.size()) {
                     glm::mat4 m = glm::translate(glm::mat4(1.0f), prop.pos);
@@ -493,7 +533,10 @@ int main(int argc, char** argv) {
                 }
             }
 
-            // Draw Player Character (Skinned mesh or fallback)
+            // 3. Draw Living Wildlife (Animated Crows, Forest Stags in Mist, Bioluminescent Fireflies)
+            wildlifeSystem.draw(view, proj, camPos);
+
+            // 4. Draw Player Character (Skinned mesh or fallback)
             glm::mat4 playerModelMatrix = glm::translate(glm::mat4(1.0f), playerPhysics.position);
             playerModelMatrix = glm::rotate(playerModelMatrix, glm::radians(animator.getFacingAngleDegrees()), glm::vec3(0, 1, 0));
             if (hasSkinnedPlayer) {
