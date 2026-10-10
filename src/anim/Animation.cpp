@@ -132,20 +132,20 @@ bool AnimationLibrary::loadGLBAnimations(const std::string& glbPath) {
                 if (times[t] > clip.duration) clip.duration = times[t];
             }
 
-            if (chan.target_property == cgltf_animation_path_type_translation) {
+            if (chan.target_path == cgltf_animation_path_type_translation) {
                 for (cgltf_size t = 0; t < timeCount; ++t) {
                     float v[3];
                     cgltf_accessor_read_float(sampler->output, t, v, 3);
                     channel.translationKeys.push_back({times[t], glm::vec3(v[0], v[1], v[2])});
                 }
-            } else if (chan.target_property == cgltf_animation_path_type_rotation) {
+            } else if (chan.target_path == cgltf_animation_path_type_rotation) {
                 for (cgltf_size t = 0; t < timeCount; ++t) {
                     float v[4];
                     cgltf_accessor_read_float(sampler->output, t, v, 4);
                     // glTF quaternion order: x, y, z, w -> glm::quat(w, x, y, z)
                     channel.rotationKeys.push_back({times[t], glm::quat(v[3], v[0], v[1], v[2])});
                 }
-            } else if (chan.target_property == cgltf_animation_path_type_scale) {
+            } else if (chan.target_path == cgltf_animation_path_type_scale) {
                 for (cgltf_size t = 0; t < timeCount; ++t) {
                     float v[3];
                     cgltf_accessor_read_float(sampler->output, t, v, 3);
