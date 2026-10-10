@@ -1,0 +1,3 @@
+D:/The Seventh Night/build/CMakeFiles/SeventhNight.dir
+D:/The Seventh Night/build/CMakeFiles/ALL_BUILD.dir
+D:/The Seventh Night/build/CMakeFiles/ZERO_CHECK.dir

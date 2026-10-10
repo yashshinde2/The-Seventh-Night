@@ -13,6 +13,9 @@ find_path(STB_INCLUDE_DIRS "stb_image.h")
 add_executable(SeventhNight
     src/main.cpp
     src/Model.cpp
+    src/anim/Animation.cpp
+    src/anim/SkinnedModel.cpp
+    src/physics/PhysicsEngine.cpp
 )
 
 target_include_directories(SeventhNight PRIVATE
