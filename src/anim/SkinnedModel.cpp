@@ -212,12 +212,16 @@ bool SkinnedModel::loadGLB(const std::string& path) {
             }
 
             glm::vec4 color(1.0f);
+            GLuint tex = 0;
             if (prim.material && prim.material->has_pbr_metallic_roughness) {
                 const auto& pbr = prim.material->pbr_metallic_roughness;
                 color = glm::vec4(pbr.base_color_factor[0], pbr.base_color_factor[1],
                                   pbr.base_color_factor[2], pbr.base_color_factor[3]);
+                if (pbr.base_color_texture.texture && pbr.base_color_texture.texture->image) {
+                    tex = loadSkinnedTexture(pbr.base_color_texture.texture->image, baseDir, texCache);
+                }
             }
-            meshes_.push_back(uploadSkinnedMesh(verts, idx, 0, color));
+            meshes_.push_back(uploadSkinnedMesh(verts, idx, tex, color));
         }
     }
 
