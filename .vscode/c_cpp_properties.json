@@ -4,11 +4,17 @@
       "name": "Win32",
       "includePath": [
         "${workspaceFolder}/src",
-        "${workspaceFolder}/src/**",
-        "${workspaceFolder}/vcpkg_installed/x64-windows/include",
-        "${workspaceFolder}/vcpkg_installed/x64-windows/include/**",
+        "${workspaceFolder}/src/anim",
+        "${workspaceFolder}/src/physics",
+        "${workspaceFolder}/src/game",
         "C:/vcpkg/installed/x64-windows/include",
-        "C:/vcpkg/installed/x64-windows/include/**",
+        "C:/vcpkg/installed/x64-windows/include/GL",
+        "C:/vcpkg/installed/x64-windows/include/GLFW",
+        "C:/vcpkg/installed/x64-windows/include/glm",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include/GL",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include/GLFW",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include/glm",
         "${workspaceFolder}/build"
       ],
       "defines": [
@@ -24,15 +30,7 @@
       "cStandard": "c17",
       "cppStandard": "c++17",
       "intelliSenseMode": "windows-msvc-x64",
-      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
-      "browse": {
-        "path": [
-          "${workspaceFolder}/src",
-          "${workspaceFolder}/vcpkg_installed/x64-windows/include",
-          "C:/vcpkg/installed/x64-windows/include"
-        ],
-        "limitSymbolsToIncludedHeaders": true
-      }
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json"
     }
   ],
   "version": 4
