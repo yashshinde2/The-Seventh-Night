@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstring>
 #include <algorithm>
+#include <map>
 
 namespace {
 
@@ -63,6 +64,43 @@ SkinnedMesh uploadSkinnedMesh(const std::vector<SkinnedVertex>& verts,
     return m;
 }
 
+GLuint loadSkinnedTexture(const cgltf_image* img, const std::string& baseDir,
+                          std::map<const cgltf_image*, GLuint>& cache) {
+    if (!img) return 0;
+    auto it = cache.find(img);
+    if (it != cache.end()) return it->second;
+
+    int w = 0, h = 0, n = 0;
+    unsigned char* px = nullptr;
+    if (img->buffer_view) {
+        const unsigned char* bytes =
+            (const unsigned char*)img->buffer_view->buffer->data + img->buffer_view->offset;
+        px = stbi_load_from_memory(bytes, (int)img->buffer_view->size, &w, &h, &n, 4);
+    } else if (img->uri && std::strncmp(img->uri, "data:", 5) != 0) {
+        std::string uri = img->uri;
+        cgltf_decode_uri(&uri[0]);
+        uri.resize(std::strlen(uri.c_str()));
+        px = stbi_load((baseDir + uri).c_str(), &w, &h, &n, 4);
+    }
+    if (!px) {
+        cache[img] = 0;
+        return 0;
+    }
+
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, px);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    stbi_image_free(px);
+    cache[img] = tex;
+    return tex;
+}
+
 } // namespace
 
 SkinnedModel::~SkinnedModel() { release(); }
@@ -110,6 +148,12 @@ bool SkinnedModel::loadGLB(const std::string& path) {
         cgltf_free(data);
         return false;
     }
+
+    std::string baseDir;
+    size_t slash = path.find_last_of("/\\");
+    if (slash != std::string::npos) baseDir = path.substr(0, slash + 1);
+
+    std::map<const cgltf_image*, GLuint> texCache;
 
     // Build node hierarchy
     nodes_.resize(data->nodes_count);
