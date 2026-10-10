@@ -1,0 +1,10 @@
+^D:\THE SEVENTH NIGHT\BUILD\CMAKEFILES\7884983EC778DAFF6C209739B04C5704\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SD:/The Seventh Night" "-BD:/The Seventh Night/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "D:/The Seventh Night/build/SeventhNight.slnx"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

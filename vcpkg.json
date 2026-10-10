@@ -1,6 +1,7 @@
 {
   "name": "seventh-night",
   "version": "0.1.0",
+  "builtin-baseline": "9426f376cfd99e03d49f16b2cf725227d86f7344",
   "dependencies": [
     "glfw3",
     "glew",
