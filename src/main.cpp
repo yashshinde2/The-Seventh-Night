@@ -212,6 +212,7 @@ int main(int argc, char** argv) {
         std::printf("Controls:\n");
         std::printf(" A/D: Move | W/S: Change Depth Lane | Space: Jump | Shift: Sprint\n");
         std::printf(" Q/E: Lower/Raise Will | Ctrl: Steady Breath | R: Red Thread Sense | Esc: Quit\n");
+        std::fflush(stdout);
 
         while (!glfwWindowShouldClose(window)) {
             double now = glfwGetTime();
