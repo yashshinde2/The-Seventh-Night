@@ -74,24 +74,26 @@ void main() {
     vec3 n = normalize(vNrm);
     if (!gl_FrontFacing) n = -n;
 
-    vec3 ambient = vec3(0.08, 0.11, 0.16);
-    vec3 moon = vec3(0.12, 0.18, 0.28) * max(dot(n, normalize(vec3(-0.3, 1.0, 0.5))), 0.0);
+    // Atmospheric midnight ambient and moon lighting
+    vec3 ambient = vec3(0.22, 0.28, 0.38);
+    vec3 moon = vec3(0.35, 0.45, 0.65) * max(dot(n, normalize(vec3(-0.4, 1.0, 0.6))), 0.0);
 
+    // Warm lantern glow
     vec3 L = uLightPos - vPos;
     float d = length(L);
     L /= d;
-    float att = 1.0 / (1.0 + 0.30 * d + 0.06 * d * d);
-    vec3 lamp = vec3(1.0, 0.60, 0.25) * max(dot(n, L), 0.0) * att * 2.8 * uWill;
+    float att = 1.0 / (1.0 + 0.12 * d + 0.015 * d * d);
+    vec3 lamp = vec3(1.0, 0.72, 0.35) * max(dot(n, L), 0.0) * att * 3.5 * uWill;
 
-    // Mauli Red Thread light contribution
-    vec3 redLight = vec3(0.95, 0.20, 0.15) * uRedGlow * max(dot(n, L), 0.0) * att * 1.5;
+    // Mauli Red Thread glow
+    vec3 redLight = vec3(0.95, 0.25, 0.20) * uRedGlow * max(dot(n, L), 0.0) * att * 2.0;
 
     vec3 col = base.rgb * (ambient + moon + lamp + redLight);
 
-    // Fog volume calculation
+    // Dynamic fog attenuation
     float fd = length(uCamPos - vPos);
-    float fog = 1.0 - exp(-pow(fd * 0.040, 1.6));
-    vec3 fogColor = mix(vec3(0.04, 0.06, 0.08), vec3(0.20, 0.05, 0.04), uRedGlow * 0.5);
+    float fog = 1.0 - exp(-pow(fd * 0.022, 1.4));
+    vec3 fogColor = mix(vec3(0.08, 0.12, 0.18), vec3(0.30, 0.08, 0.06), uRedGlow * 0.5);
     col = mix(col, fogColor, fog);
 
     frag = vec4(col, base.a);
@@ -131,6 +133,13 @@ static GLuint makeProgram() {
     return p;
 }
 
+struct LevelProp {
+    size_t modelIdx;
+    glm::vec3 pos;
+    float scale = 1.0f;
+    float rotationY = 0.0f;
+};
+
 int main(int argc, char** argv) {
     if (!glfwInit()) {
         std::fprintf(stderr, "Could not start GLFW\n");
@@ -139,7 +148,7 @@ int main(int argc, char** argv) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "The Seventh Night — Engine", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "The Seventh Night — 2.5D Survival Horror Engine", nullptr, nullptr);
     if (!window) {
         std::fprintf(stderr, "Could not create window\n");
         glfwTerminate();
@@ -160,49 +169,81 @@ int main(int argc, char** argv) {
     GLuint program = makeProgram();
 
     {
-        // Environment Models
-        Model ground = Model::groundQuad(150.0f, glm::vec4(0.10f, 0.15f, 0.11f, 1.0f));
+        // Environment Ground
+        Model ground = Model::groundQuad(200.0f, glm::vec4(0.18f, 0.28f, 0.18f, 1.0f));
         Model playerFallback = Model::box(glm::vec3(0.6f, 1.7f, 0.4f), glm::vec4(0.25f, 0.45f, 0.85f, 1.0f));
 
-        std::vector<Model> natureProps;
-        // Load default nature props if available
-        std::vector<std::string> defaultPropPaths = {
+        // Load Nature Props
+        std::vector<Model> propTemplates;
+        std::vector<std::string> propPaths = {
             "assets/Stylized Nature MegaKit[Standard]/glTF/CommonTree_1.gltf",
+            "assets/Stylized Nature MegaKit[Standard]/glTF/CommonTree_2.gltf",
             "assets/Stylized Nature MegaKit[Standard]/glTF/DeadTree_1.gltf",
+            "assets/Stylized Nature MegaKit[Standard]/glTF/DeadTree_2.gltf",
+            "assets/Stylized Nature MegaKit[Standard]/glTF/TwistedTree_1.gltf",
             "assets/Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_1.gltf",
-            "assets/Stylized Nature MegaKit[Standard]/glTF/Bush_Common.gltf"
+            "assets/Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_2.gltf",
+            "assets/Stylized Nature MegaKit[Standard]/glTF/Bush_Common.gltf",
+            "assets/Stylized Nature MegaKit[Standard]/glTF/Fern_1.gltf",
+            "assets/Stylized Nature MegaKit[Standard]/glTF/Mushroom_Common.gltf"
         };
-        for (const auto& path : defaultPropPaths) {
+
+        for (const auto& path : propPaths) {
             Model m;
-            if (m.loadGLB(path)) natureProps.push_back(std::move(m));
+            if (m.loadGLB(path)) {
+                propTemplates.push_back(std::move(m));
+            }
         }
 
         // Additional CLI models
         for (int i = 1; i < argc; ++i) {
             Model m;
-            if (m.loadGLB(argv[i])) natureProps.push_back(std::move(m));
+            if (m.loadGLB(argv[i])) propTemplates.push_back(std::move(m));
         }
 
-        // Skinned Character & Animation Setup
+        // Generate Dense Forest Level Layout along lanes
+        const float laneZ[3] = {2.0f, 0.0f, -2.0f};
+        std::vector<LevelProp> worldProps;
+
+        if (!propTemplates.empty()) {
+            // Background Lane Trees & Rocks (z = -3.5 to -1.5)
+            for (float x = -80.0f; x <= 120.0f; x += 4.5f) {
+                size_t modelIdx = (size_t)(std::abs((int)(x * 7.0f)) % propTemplates.size());
+                float scale = 0.8f + 0.4f * std::sin(x * 0.3f);
+                float rot = (float)((int)(x * 13.0f) % 360);
+                worldProps.push_back({modelIdx, glm::vec3(x, 0.0f, laneZ[2] - 1.5f), scale, rot});
+            }
+            // Middle Lane Rocks & Bushes
+            for (float x = -75.0f; x <= 115.0f; x += 8.0f) {
+                size_t modelIdx = 5 + (size_t)(std::abs((int)(x * 3.0f)) % 4);
+                if (modelIdx < propTemplates.size()) {
+                    worldProps.push_back({modelIdx, glm::vec3(x, 0.0f, laneZ[1]), 1.0f, x * 15.0f});
+                }
+            }
+            // Foreground Lane Trees & Ferns (z = 2.5)
+            for (float x = -70.0f; x <= 110.0f; x += 11.0f) {
+                size_t modelIdx = (size_t)(std::abs((int)(x * 5.0f)) % propTemplates.size());
+                worldProps.push_back({modelIdx, glm::vec3(x, 0.0f, laneZ[0] + 1.2f), 1.2f, x * 25.0f});
+            }
+        }
+
+        // Load Skinned Character & Animations
         SkinnedModel playerCharacter;
         bool hasSkinnedPlayer = playerCharacter.loadGLB("assets/Universal Base Characters[Standard]/Universal Base Characters[Standard]/Base Characters/Godot - UE/Superhero_Male_FullBody.gltf");
 
         AnimationLibrary animLib;
         animLib.loadGLBAnimations("assets/Universal Animation Library[Standard]/Universal Animation Library[Standard]/Unreal-Godot/UAL1_Standard.glb");
         animLib.loadGLBAnimations("assets/Universal Animation Library 2[Standard]/Universal Animation Library 2[Standard]/Unreal-Godot/UAL2_Standard.glb");
-        animLib.printClipNames();
 
         const AnimationClip* idleClip = animLib.findClip("Idle");
         const AnimationClip* walkClip = animLib.findClip("Walk");
         const AnimationClip* runClip = animLib.findClip("Sprint");
 
-        // Physics & Game Meters
         CharacterPhysics playerPhysics;
         PlayerMeters meters;
 
         std::vector<ObstaclePlatform> platforms;
-        // Add environment ground platform
-        platforms.push_back({AABB{glm::vec3(-100.0f, -1.0f, -10.0f), glm::vec3(100.0f, 0.0f, 10.0f)}, SurfaceType::Normal, false, 1});
+        platforms.push_back({AABB{glm::vec3(-150.0f, -1.0f, -10.0f), glm::vec3(150.0f, 0.0f, 10.0f)}, SurfaceType::Normal, false, 1});
 
         float animTime = 0.0f;
         float camX = 0.0f;
@@ -222,7 +263,7 @@ int main(int argc, char** argv) {
             glfwPollEvents();
             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
 
-            // Inputs
+            // Movement & Inputs
             bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
             bool moveRight = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
             bool sprint = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
@@ -243,7 +284,7 @@ int main(int argc, char** argv) {
             if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) meters.will = std::max(0.0f, meters.will - 0.6f * dt);
             if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) meters.will = std::min(1.0f, meters.will + 0.6f * dt);
 
-            // Physics Update
+            // Physics & Meters Update
             playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq);
             meters.update(dt, false, sprint && (moveLeft || moveRight), steadyBreath, redThread);
 
@@ -257,10 +298,10 @@ int main(int argc, char** argv) {
                 playerCharacter.updateSkeleton(activeClip, animTime);
             }
 
-            // Camera Tracking
+            // Smooth Camera Tracking
             camX += (playerPhysics.position.x - camX) * std::min(1.0f, 4.0f * dt);
-            glm::vec3 camPos(camX, 3.2f, 11.0f);
-            glm::vec3 target(camX, 1.4f, 0.0f);
+            glm::vec3 camPos(camX, 2.5f, 9.5f);
+            glm::vec3 target(camX, 1.2f, 0.0f);
             glm::mat4 view = glm::lookAt(camPos, target, glm::vec3(0, 1, 0));
 
             int fbw, fbh;
@@ -268,9 +309,9 @@ int main(int argc, char** argv) {
             if (fbh == 0) fbh = 1;
             glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)fbw / fbh, 0.1f, 200.0f);
 
-            // Rendering
+            // Render Pass
             glViewport(0, 0, fbw, fbh);
-            glClearColor(0.04f, 0.06f, 0.08f, 1.0f);
+            glClearColor(0.08f, 0.12f, 0.18f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glUseProgram(program);
@@ -278,25 +319,28 @@ int main(int argc, char** argv) {
             glUniformMatrix4fv(glGetUniformLocation(program, "uProj"), 1, GL_FALSE, &proj[0][0]);
             glUniform3fv(glGetUniformLocation(program, "uCamPos"), 1, &camPos[0]);
 
-            glm::vec3 lanternPos = playerPhysics.position + glm::vec3(0.4f, 1.2f, 0.6f);
+            glm::vec3 lanternPos = playerPhysics.position + glm::vec3(0.3f, 1.2f, 0.5f);
             glUniform3fv(glGetUniformLocation(program, "uLightPos"), 1, &lanternPos[0]);
 
             float flicker = 0.92f + 0.08f * std::sin((float)now * 17.0f) * std::sin((float)now * 5.3f);
             glUniform1f(glGetUniformLocation(program, "uWill"), meters.will * flicker);
             glUniform1f(glGetUniformLocation(program, "uRedGlow"), meters.redThreadGlow);
 
-            // Ground plane
+            // Draw Ground
             glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
             ground.draw(program, glm::mat4(1.0f));
 
-            // Nature Props along lanes
-            const float laneZ[3] = {2.0f, 0.0f, -2.0f};
-            for (size_t i = 0; i < natureProps.size(); ++i) {
-                glm::mat4 propMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(-15.0f + 7.0f * (float)i, 0.0f, laneZ[2] - 1.0f));
-                natureProps[i].draw(program, propMatrix);
+            // Draw World Forest Props
+            for (const auto& prop : worldProps) {
+                if (prop.modelIdx < propTemplates.size()) {
+                    glm::mat4 m = glm::translate(glm::mat4(1.0f), prop.pos);
+                    m = glm::rotate(m, glm::radians(prop.rotationY), glm::vec3(0, 1, 0));
+                    m = glm::scale(m, glm::vec3(prop.scale));
+                    propTemplates[prop.modelIdx].draw(program, m);
+                }
             }
 
-            // Draw Player Character (Skinned or Fallback box)
+            // Draw Player Character (Skinned mesh or fallback)
             glm::mat4 playerModelMatrix = glm::translate(glm::mat4(1.0f), playerPhysics.position);
             if (moveLeft) {
                 playerModelMatrix = glm::rotate(playerModelMatrix, glm::radians(180.0f), glm::vec3(0, 1, 0));
