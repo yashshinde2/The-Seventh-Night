@@ -4,21 +4,35 @@
       "name": "Win32",
       "includePath": [
         "${workspaceFolder}/src",
+        "${workspaceFolder}/src/**",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include/**",
         "C:/vcpkg/installed/x64-windows/include",
+        "C:/vcpkg/installed/x64-windows/include/**",
         "${workspaceFolder}/build"
       ],
       "defines": [
         "_DEBUG",
         "UNICODE",
         "_UNICODE",
-        "GLEW_STATIC"
+        "GLEW_STATIC",
+        "CGLTF_IMPLEMENTATION",
+        "STB_IMAGE_IMPLEMENTATION"
       ],
       "windowsSdkVersion": "10.0.26100.0",
       "compilerPath": "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe",
       "cStandard": "c17",
       "cppStandard": "c++17",
       "intelliSenseMode": "windows-msvc-x64",
-      "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+      "browse": {
+        "path": [
+          "${workspaceFolder}/src",
+          "${workspaceFolder}/vcpkg_installed/x64-windows/include",
+          "C:/vcpkg/installed/x64-windows/include"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
     }
   ],
   "version": 4

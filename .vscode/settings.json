@@ -1,8 +1,14 @@
 {
   "C_Cpp.default.includePath": [
     "${workspaceFolder}/src",
-    "C:/vcpkg/installed/x64-windows/include"
+    "${workspaceFolder}/src/**",
+    "${workspaceFolder}/vcpkg_installed/x64-windows/include",
+    "${workspaceFolder}/vcpkg_installed/x64-windows/include/**",
+    "C:/vcpkg/installed/x64-windows/include",
+    "C:/vcpkg/installed/x64-windows/include/**"
   ],
   "C_Cpp.default.cppStandard": "c++17",
-  "C_Cpp.default.cStandard": "c17"
+  "C_Cpp.default.cStandard": "c17",
+  "C_Cpp.intelliSenseEngine": "default",
+  "C_Cpp.errorSquiggles": "enabled"
 }

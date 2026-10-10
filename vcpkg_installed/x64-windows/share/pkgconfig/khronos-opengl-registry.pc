@@ -1,0 +1,6 @@
+prefix=${pcfiledir}/../..
+datadir=${prefix}/share
+specdir=${datadir}/opengl
+Name: khronos-opengl-registry
+Description: Khronos OpenGL registry
+Version: gite8f7cd0e35ac8d6f5667a021ff83d04b1fec41ef

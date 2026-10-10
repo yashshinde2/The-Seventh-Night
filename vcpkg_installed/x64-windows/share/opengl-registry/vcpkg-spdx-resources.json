@@ -1,0 +1,19 @@
+{
+  "packages": [
+{
+  "SPDXID" : "SPDXRef-resource-0",
+  "checksums" : 
+  [
+    {
+      "algorithm" : "SHA512",
+      "checksumValue" : "7b2eab04e54aa77294887f897f3091c07ecad38acc1dfb1e9d1efc3954d347a0b8c2666f3ceaf074dd17a3d97305f3d99494fe80c4b2f17d052183dfab1927c5"
+    }
+  ],
+  "copyrightText" : "NOASSERTION",
+  "downloadLocation" : "git+https://github.com/KhronosGroup/OpenGL-Registry@e8f7cd0e35ac8d6f5667a021ff83d04b1fec41ef",
+  "licenseConcluded" : "NOASSERTION",
+  "licenseDeclared" : "NOASSERTION",
+  "name" : "KhronosGroup/OpenGL-Registry"
+}
+  ]
+}
