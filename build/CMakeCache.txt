@@ -58,6 +58,11 @@ CMAKE_EXE_LINKER_FLAGS_RELEASE:STRING=/INCREMENTAL:NO
 //Flags used by the linker during RELWITHDEBINFO builds.
 CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO:STRING=/debug /INCREMENTAL
 
+//Enable output of a compile_commands.json file listing the exact
+// compiler invocation for each translation unit. Implemented by
+// the Makefile and Ninja generators; ignored elsewhere.
+CMAKE_EXPORT_COMPILE_COMMANDS:UNINITIALIZED=ON
+
 //Value Computed by CMake.
 CMAKE_FIND_PACKAGE_REDIRECTS_DIR:STATIC=D:/The Seventh Night/build/CMakeFiles/pkgRedirects
 
@@ -170,8 +175,10 @@ CMAKE_STATIC_LINKER_FLAGS_RELEASE:STRING=
 // during RELWITHDEBINFO builds.
 CMAKE_STATIC_LINKER_FLAGS_RELWITHDEBINFO:STRING=
 
-//The CMake toolchain file
-CMAKE_TOOLCHAIN_FILE:FILEPATH=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+//Path to a CMake toolchain file, read early in the CMake run,
+// that specifies the compilers, toolchain utilities, and target-platform
+// information used when cross-compiling.
+CMAKE_TOOLCHAIN_FILE:UNINITIALIZED=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
 
 //If this value is on, makefiles will be generated without the
 // .SILENT directive, and all commands will be echoed to the console
