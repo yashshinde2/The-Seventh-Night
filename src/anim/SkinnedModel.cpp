@@ -81,7 +81,27 @@ GLuint loadSkinnedTexture(const cgltf_image* img, const std::string& baseDir,
         std::string uri = img->uri;
         cgltf_decode_uri(&uri[0]);
         uri.resize(std::strlen(uri.c_str()));
-        px = stbi_load((baseDir + uri).c_str(), &w, &h, &n, 4);
+
+        std::string filename = uri;
+        size_t lastSlash = filename.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            filename = filename.substr(lastSlash + 1);
+        }
+
+        std::vector<std::string> candidates = {
+            baseDir + uri,
+            baseDir + filename,
+            baseDir + "Textures/" + filename,
+            baseDir + "../Textures/" + filename,
+            baseDir + "../../Textures/" + filename,
+            baseDir + "../" + filename,
+            baseDir + "../../" + filename
+        };
+
+        for (const auto& candidate : candidates) {
+            px = stbi_load(candidate.c_str(), &w, &h, &n, 4);
+            if (px) break;
+        }
     }
     if (!px) {
         cache[img] = 0;

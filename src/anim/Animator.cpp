@@ -75,19 +75,19 @@ static bool isLoopingState(AnimState state) {
 }
 
 void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& model) {
-    float speed = std::abs(physics.velocity.x);
+    float horizSpeed = std::sqrt(physics.velocity.x * physics.velocity.x + physics.velocity.z * physics.velocity.z);
 
-    // Update facing direction (+90 deg for +X, -90 deg for -X)
-    if (physics.velocity.x > 0.2f) {
-        facingRight_ = true;
-        targetFacingY_ = 90.0f;
-    } else if (physics.velocity.x < -0.2f) {
-        facingRight_ = false;
-        targetFacingY_ = -90.0f;
+    // Update facing direction based on 2D planar velocity (+Z camera, -Z depth, +X right, -X left)
+    if (horizSpeed > 0.15f) {
+        float angleRad = std::atan2(physics.velocity.x, physics.velocity.z);
+        targetFacingY_ = glm::degrees(angleRad);
     }
 
-    // Smooth facing turn
-    currentFacingY_ += (targetFacingY_ - currentFacingY_) * (1.0f - std::exp(-15.0f * dt));
+    // Smooth shortest-arc facing turn
+    float diff = targetFacingY_ - currentFacingY_;
+    while (diff > 180.0f) diff -= 360.0f;
+    while (diff < -180.0f) diff += 360.0f;
+    currentFacingY_ += diff * (1.0f - std::exp(-18.0f * dt));
 
     // Determine state from physics
     if (!physics.onGround) {
@@ -102,13 +102,13 @@ void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& m
             transitionTo(AnimState::Land);
         } else if (currentState_ == AnimState::Land) {
             // Stay in land pose for short duration before returning to locomotion
-            if (currentTime_ > 0.25f) {
-                transitionTo(speed > 4.8f ? AnimState::Run : (speed > 0.2f ? AnimState::Walk : AnimState::Idle));
+            if (currentTime_ > 0.22f) {
+                transitionTo(horizSpeed > 4.8f ? AnimState::Run : (horizSpeed > 0.2f ? AnimState::Walk : AnimState::Idle));
             }
         } else {
-            if (speed > 4.8f) {
+            if (horizSpeed > 4.8f) {
                 transitionTo(AnimState::Run);
-            } else if (speed > 0.2f) {
+            } else if (horizSpeed > 0.2f) {
                 transitionTo(AnimState::Walk);
             } else {
                 transitionTo(AnimState::Idle);
@@ -119,8 +119,8 @@ void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& m
 
     // Advance playback timers with locomotion speed scaling
     float playRate = 1.0f;
-    if (currentState_ == AnimState::Walk) playRate = std::max(0.4f, speed / 4.0f);
-    else if (currentState_ == AnimState::Run) playRate = std::max(0.6f, speed / 6.5f);
+    if (currentState_ == AnimState::Walk) playRate = std::max(0.45f, horizSpeed / 3.8f);
+    else if (currentState_ == AnimState::Run) playRate = std::max(0.6f, horizSpeed / 6.2f);
 
     currentTime_ += dt * playRate;
     prevTime_ += dt;
