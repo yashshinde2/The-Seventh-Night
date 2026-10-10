@@ -17,13 +17,22 @@ struct SkinnedMesh {
     glm::vec4 color{1.0f};
 };
 
+struct NodeTransform {
+    glm::vec3 translation{0.0f};
+    glm::quat rotation{1.0f, 0.0f, 0.0f, 0.0f};
+    glm::vec3 scale{1.0f};
+};
+
+struct Pose {
+    std::vector<NodeTransform> nodeTransforms;
+};
+
 struct SkeletonNode {
     std::string name;
     int parent = -1;
     std::vector<int> children;
-    glm::vec3 localTranslation{0.0f};
-    glm::quat localRotation{1.0f, 0.0f, 0.0f, 0.0f};
-    glm::vec3 localScale{1.0f};
+    NodeTransform bindPose;
+    NodeTransform currentTransform;
     glm::mat4 globalTransform{1.0f};
 };
 
@@ -44,13 +53,20 @@ public:
     SkinnedModel& operator=(SkinnedModel&& other) noexcept;
 
     bool loadGLB(const std::string& path);
-    void updateSkeleton(const AnimationClip* clip, float time);
-    void updateSkeletonCrossfade(const AnimationClip* clipA, float timeA,
-                                 const AnimationClip* clipB, float timeB,
-                                 float blendFactor);
+
+    // Phase 3: Bind pose, Pose sampling, blending, and application
+    Pose getBindPose() const;
+    Pose samplePose(const AnimationClip* clip, float time, bool loop = true) const;
+    static Pose blendPoses(const Pose& a, const Pose& b, float t);
+    void applyPose(const Pose& pose);
+
+    // Legacy update fallback
+    void updateSkeleton(const AnimationClip* clip, float time, bool loop = true);
 
     void draw(GLuint program, const glm::mat4& modelMatrix) const;
 
+    glm::mat4 getBoneWorldTransform(const std::string& name, const glm::mat4& modelMatrix) const;
+    std::vector<std::string> getBoneNames() const;
     const std::vector<Joint>& getJoints() const { return joints_; }
 
 private:

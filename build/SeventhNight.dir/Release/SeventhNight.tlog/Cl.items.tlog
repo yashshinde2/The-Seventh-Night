@@ -1,5 +1,7 @@
 D:\The Seventh Night\src\main.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\main.obj
 D:\The Seventh Night\src\Model.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\Model.obj
+D:\The Seventh Night\src\core\Assets.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\Assets.obj
 D:\The Seventh Night\src\anim\Animation.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\Animation.obj
+D:\The Seventh Night\src\anim\Animator.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\Animator.obj
 D:\The Seventh Night\src\anim\SkinnedModel.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\SkinnedModel.obj
 D:\The Seventh Night\src\physics\PhysicsEngine.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\PhysicsEngine.obj

@@ -8,6 +8,7 @@
 #include <cstring>
 #include <algorithm>
 #include <map>
+#include <cmath>
 
 namespace {
 
@@ -155,7 +156,7 @@ bool SkinnedModel::loadGLB(const std::string& path) {
 
     std::map<const cgltf_image*, GLuint> texCache;
 
-    // Build node hierarchy
+    // Build node hierarchy & preserve bind pose
     nodes_.resize(data->nodes_count);
     for (cgltf_size i = 0; i < data->nodes_count; ++i) {
         const cgltf_node* n = &data->nodes[i];
@@ -163,15 +164,22 @@ bool SkinnedModel::loadGLB(const std::string& path) {
         sNode.name = n->name ? n->name : ("Node_" + std::to_string(i));
         nameToNode_[sNode.name] = (int)i;
 
+        glm::vec3 t(0.0f);
+        glm::quat r(1.0f, 0.0f, 0.0f, 0.0f);
+        glm::vec3 s(1.0f);
+
         if (n->has_translation) {
-            sNode.localTranslation = glm::vec3(n->translation[0], n->translation[1], n->translation[2]);
+            t = glm::vec3(n->translation[0], n->translation[1], n->translation[2]);
         }
         if (n->has_rotation) {
-            sNode.localRotation = glm::quat(n->rotation[3], n->rotation[0], n->rotation[1], n->rotation[2]);
+            r = glm::quat(n->rotation[3], n->rotation[0], n->rotation[1], n->rotation[2]);
         }
         if (n->has_scale) {
-            sNode.localScale = glm::vec3(n->scale[0], n->scale[1], n->scale[2]);
+            s = glm::vec3(n->scale[0], n->scale[1], n->scale[2]);
         }
+
+        sNode.bindPose = {t, r, s};
+        sNode.currentTransform = sNode.bindPose;
     }
 
     // Connect node parent/children
@@ -271,15 +279,75 @@ bool SkinnedModel::loadGLB(const std::string& path) {
 
     cgltf_free(data);
     std::printf("Loaded SkinnedModel %s (%zu meshes, %zu joints)\n", path.c_str(), meshes_.size(), joints_.size());
+
+    // Apply bind pose initially
+    applyPose(getBindPose());
+
     return !meshes_.empty();
+}
+
+Pose SkinnedModel::getBindPose() const {
+    Pose p;
+    p.nodeTransforms.resize(nodes_.size());
+    for (size_t i = 0; i < nodes_.size(); ++i) {
+        p.nodeTransforms[i] = nodes_[i].bindPose;
+    }
+    return p;
+}
+
+Pose SkinnedModel::samplePose(const AnimationClip* clip, float time, bool loop) const {
+    if (!clip || nodes_.empty()) return getBindPose();
+
+    float playbackTime = time;
+    if (clip->duration > 0.0f) {
+        playbackTime = loop ? std::fmod(time, clip->duration) : std::min(time, clip->duration);
+    } else {
+        playbackTime = 0.0f;
+    }
+
+    Pose p;
+    p.nodeTransforms.resize(nodes_.size());
+
+    for (size_t i = 0; i < nodes_.size(); ++i) {
+        const auto& node = nodes_[i];
+        const AnimationChannel* channel = clip->getChannel(node.name);
+
+        if (channel) {
+            p.nodeTransforms[i].translation = channel->sampleTranslation(playbackTime, node.bindPose.translation);
+            p.nodeTransforms[i].rotation = channel->sampleRotation(playbackTime, node.bindPose.rotation);
+            p.nodeTransforms[i].scale = channel->sampleScale(playbackTime, node.bindPose.scale);
+        } else {
+            // Safe fallback to bind pose!
+            p.nodeTransforms[i] = node.bindPose;
+        }
+    }
+    return p;
+}
+
+Pose SkinnedModel::blendPoses(const Pose& a, const Pose& b, float t) {
+    t = glm::clamp(t, 0.0f, 1.0f);
+    size_t count = std::min(a.nodeTransforms.size(), b.nodeTransforms.size());
+
+    Pose out;
+    out.nodeTransforms.resize(count);
+
+    for (size_t i = 0; i < count; ++i) {
+        out.nodeTransforms[i].translation = glm::mix(a.nodeTransforms[i].translation,
+                                                     b.nodeTransforms[i].translation, t);
+        out.nodeTransforms[i].rotation = glm::normalize(glm::slerp(a.nodeTransforms[i].rotation,
+                                                                   b.nodeTransforms[i].rotation, t));
+        out.nodeTransforms[i].scale = glm::mix(a.nodeTransforms[i].scale,
+                                               b.nodeTransforms[i].scale, t);
+    }
+    return out;
 }
 
 void SkinnedModel::computeGlobalTransforms(int nodeIdx, const glm::mat4& parentGlobal) {
     SkeletonNode& node = nodes_[nodeIdx];
 
-    glm::mat4 T = glm::translate(glm::mat4(1.0f), node.localTranslation);
-    glm::mat4 R = glm::mat4_cast(node.localRotation);
-    glm::mat4 S = glm::scale(glm::mat4(1.0f), node.localScale);
+    glm::mat4 T = glm::translate(glm::mat4(1.0f), node.currentTransform.translation);
+    glm::mat4 R = glm::mat4_cast(node.currentTransform.rotation);
+    glm::mat4 S = glm::scale(glm::mat4(1.0f), node.currentTransform.scale);
 
     glm::mat4 localMat = T * R * S;
     node.globalTransform = parentGlobal * localMat;
@@ -289,21 +357,10 @@ void SkinnedModel::computeGlobalTransforms(int nodeIdx, const glm::mat4& parentG
     }
 }
 
-void SkinnedModel::updateSkeleton(const AnimationClip* clip, float time) {
-    if (nodes_.empty()) return;
-
-    if (clip) {
-        for (auto& node : nodes_) {
-            const AnimationChannel* channel = clip->getChannel(node.name);
-            if (channel) {
-                if (!channel->translationKeys.empty())
-                    node.localTranslation = channel->sampleTranslation(time);
-                if (!channel->rotationKeys.empty())
-                    node.localRotation = channel->sampleRotation(time);
-                if (!channel->scaleKeys.empty())
-                    node.localScale = channel->sampleScale(time);
-            }
-        }
+void SkinnedModel::applyPose(const Pose& pose) {
+    size_t count = std::min(nodes_.size(), pose.nodeTransforms.size());
+    for (size_t i = 0; i < count; ++i) {
+        nodes_[i].currentTransform = pose.nodeTransforms[i];
     }
 
     // Traverse hierarchy from roots
@@ -322,41 +379,26 @@ void SkinnedModel::updateSkeleton(const AnimationClip* clip, float time) {
     }
 }
 
-void SkinnedModel::updateSkeletonCrossfade(const AnimationClip* clipA, float timeA,
-                                           const AnimationClip* clipB, float timeB,
-                                           float blendFactor) {
-    if (nodes_.empty()) return;
-    blendFactor = glm::clamp(blendFactor, 0.0f, 1.0f);
+void SkinnedModel::updateSkeleton(const AnimationClip* clip, float time, bool loop) {
+    Pose p = samplePose(clip, time, loop);
+    applyPose(p);
+}
 
-    for (auto& node : nodes_) {
-        const AnimationChannel* chanA = clipA ? clipA->getChannel(node.name) : nullptr;
-        const AnimationChannel* chanB = clipB ? clipB->getChannel(node.name) : nullptr;
-
-        glm::vec3 posA = chanA ? chanA->sampleTranslation(timeA) : node.localTranslation;
-        glm::quat rotA = chanA ? chanA->sampleRotation(timeA) : node.localRotation;
-        glm::vec3 scaA = chanA ? chanA->sampleScale(timeA) : node.localScale;
-
-        glm::vec3 posB = chanB ? chanB->sampleTranslation(timeB) : node.localTranslation;
-        glm::quat rotB = chanB ? chanB->sampleRotation(timeB) : node.localRotation;
-        glm::vec3 scaB = chanB ? chanB->sampleScale(timeB) : node.localScale;
-
-        node.localTranslation = glm::mix(posA, posB, blendFactor);
-        node.localRotation = glm::slerp(rotA, rotB, blendFactor);
-        node.localScale = glm::mix(scaA, scaB, blendFactor);
+glm::mat4 SkinnedModel::getBoneWorldTransform(const std::string& name, const glm::mat4& modelMatrix) const {
+    auto it = nameToNode_.find(name);
+    if (it != nameToNode_.end() && it->second >= 0 && it->second < (int)nodes_.size()) {
+        return modelMatrix * nodes_[it->second].globalTransform;
     }
+    return modelMatrix;
+}
 
-    for (size_t i = 0; i < nodes_.size(); ++i) {
-        if (nodes_[i].parent == -1) {
-            computeGlobalTransforms((int)i, glm::mat4(1.0f));
-        }
+std::vector<std::string> SkinnedModel::getBoneNames() const {
+    std::vector<std::string> names;
+    names.reserve(joints_.size());
+    for (const auto& j : joints_) {
+        names.push_back(j.name);
     }
-
-    for (size_t j = 0; j < joints_.size(); ++j) {
-        int nodeIdx = joints_[j].nodeIndex;
-        if (nodeIdx >= 0 && nodeIdx < (int)nodes_.size()) {
-            jointMatrices_[j] = nodes_[nodeIdx].globalTransform * joints_[j].inverseBindMatrix;
-        }
-    }
+    return names;
 }
 
 void SkinnedModel::draw(GLuint program, const glm::mat4& modelMatrix) const {

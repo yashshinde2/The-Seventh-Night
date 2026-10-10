@@ -59,3 +59,5 @@ public:
 
     void update(float dt, const std::vector<ObstaclePlatform>& platforms, bool moveLeft, bool moveRight, bool sprint, bool jumpRequested, bool dropRequested);
 };
+
+void runPhysicsPhase0Test();

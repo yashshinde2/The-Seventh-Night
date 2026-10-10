@@ -13,7 +13,9 @@ find_path(STB_INCLUDE_DIRS "stb_image.h")
 add_executable(SeventhNight
     src/main.cpp
     src/Model.cpp
+    src/core/Assets.cpp
     src/anim/Animation.cpp
+    src/anim/Animator.cpp
     src/anim/SkinnedModel.cpp
     src/physics/PhysicsEngine.cpp
 )
@@ -29,6 +31,10 @@ target_link_libraries(SeventhNight PRIVATE
     glfw
     GLEW::GLEW
     glm::glm
+)
+
+set_target_properties(SeventhNight PROPERTIES
+    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
 )
 
 if (MSVC)
