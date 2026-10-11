@@ -33,10 +33,5 @@
     "directory": "D:/The Seventh Night",
     "command": "\"C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe\" /c /std:c++17 /EHsc /MDd /Zi /I\"D:/The Seventh Night/src\" /I\"C:/vcpkg/installed/x64-windows/include\" /I\"D:/The Seventh Night/vcpkg_installed/x64-windows/include\" \"D:/The Seventh Night/src/physics/PhysicsEngine.cpp\"",
     "file": "D:/The Seventh Night/src/physics/PhysicsEngine.cpp"
-  },
-  {
-    "directory": "D:/The Seventh Night",
-    "command": "\"C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe\" /c /std:c++17 /EHsc /MDd /Zi /I\"D:/The Seventh Night/src\" /I\"C:/vcpkg/installed/x64-windows/include\" /I\"D:/The Seventh Night/vcpkg_installed/x64-windows/include\" \"D:/The Seventh Night/src/environment/SkySystem.cpp\"",
-    "file": "D:/The Seventh Night/src/environment/SkySystem.cpp"
   }
 ]

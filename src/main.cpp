@@ -20,7 +20,6 @@
 #include "anim/Animator.h"
 #include "physics/PhysicsEngine.h"
 #include "game/GameMeters.h"
-#include "environment/SkySystem.h"
 
 static const char* kVertexShader = R"(
 #version 330 core
@@ -430,10 +429,6 @@ int main(int argc, char** argv) {
         CharacterPhysics playerPhysics;
         PlayerMeters meters;
 
-        // Realistic Sky, Full Moon, Stars, and Sahyadri Mountains
-        SkySystem skySystem;
-        skySystem.init();
-
         // Ground and interactive village/city platforms
         std::vector<ObstaclePlatform> platforms;
         platforms.push_back({AABB{glm::vec3(-150.0f, -1.0f, -10.0f), glm::vec3(150.0f, 0.0f, 10.0f)}, SurfaceType::Normal, false, 1});
@@ -496,9 +491,6 @@ int main(int argc, char** argv) {
             playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
             meters.update(dt, false, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
 
-            // Update Living Celestial Environment
-            skySystem.update(dt);
-
             // Determine active and companion characters
             SkinnedModel& activePlayer = (activeCharIdx == 0 && hasMale) ? playerMale : ((hasFemale) ? playerFemale : playerMale);
             bool hasSkinnedPlayer = (activeCharIdx == 0) ? hasMale : hasFemale;
@@ -539,10 +531,7 @@ int main(int argc, char** argv) {
             glClearColor(0.015f, 0.035f, 0.075f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // 1. Draw Celestial Midnight Sky, Stars, Full Moon, and Parallax Sahyadri Mountains
-            skySystem.draw(view, proj, camPos);
-
-            // 2. Main 3D World Geometry Pass
+            // Main 3D World Geometry Pass (Rendering assets from assets folder)
             glUseProgram(program);
             glUniformMatrix4fv(glGetUniformLocation(program, "uView"), 1, GL_FALSE, &view[0][0]);
             glUniformMatrix4fv(glGetUniformLocation(program, "uProj"), 1, GL_FALSE, &proj[0][0]);
