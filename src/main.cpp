@@ -21,7 +21,6 @@
 #include "physics/PhysicsEngine.h"
 #include "game/GameMeters.h"
 #include "environment/SkySystem.h"
-#include "environment/WildlifeSystem.h"
 
 static const char* kVertexShader = R"(
 #version 330 core
@@ -157,6 +156,8 @@ struct LevelProp {
 };
 
 int main(int argc, char** argv) {
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
+    std::setvbuf(stderr, nullptr, _IONBF, 0);
     if (!glfwInit()) {
         std::fprintf(stderr, "Could not start GLFW\n");
         return 1;
@@ -385,14 +386,24 @@ int main(int argc, char** argv) {
             placeProp("fern", glm::vec3(x - 1.5f, 0.0f, 2.6f), 1.0f, x * 29.0f);
         }
 
-        // Load Skinned Character & Animations dynamically from assetsRoot
-        fs::path charPath = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Male_FullBody.gltf";
-        SkinnedModel playerCharacter;
-        bool hasSkinnedPlayer = playerCharacter.loadGLB(charPath.string());
-        std::printf("[Phase 1] Load Character '%s': %s\n", charPath.filename().string().c_str(), hasSkinnedPlayer ? "SUCCESS" : "FAILED");
-        if (!hasSkinnedPlayer) {
-            std::fprintf(stderr, "\n[WARNING] Phase 1: Player character model failed to load! Using fallback blue box.\n");
+        // Load Skinned Characters & Animations dynamically from assetsRoot
+        fs::path maleCharPath = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Male_FullBody.gltf";
+        fs::path femaleCharPath = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Female_FullBody.gltf";
+
+        SkinnedModel playerMale;
+        bool hasMale = playerMale.loadGLB(maleCharPath.string());
+        std::printf("[Character] Load Male Character '%s': %s\n", maleCharPath.filename().string().c_str(), hasMale ? "SUCCESS" : "FAILED");
+
+        SkinnedModel playerFemale;
+        bool hasFemale = playerFemale.loadGLB(femaleCharPath.string());
+        std::printf("[Character] Load Female Character '%s': %s\n", femaleCharPath.filename().string().c_str(), hasFemale ? "SUCCESS" : "FAILED");
+
+        if (!hasMale && !hasFemale) {
+            std::fprintf(stderr, "\n[WARNING] Phase 1: Player character models failed to load! Using fallback blue box.\n");
         }
+
+        int activeCharIdx = 0; // 0 = Male, 1 = Female
+        bool lastCKeyState = false;
 
         fs::path ual1Path = assetsRoot / "Universal Animation Library[Standard]" / "Universal Animation Library[Standard]" / "Unreal-Godot" / "UAL1_Standard.glb";
         fs::path ual2Path = assetsRoot / "Universal Animation Library 2[Standard]" / "Universal Animation Library 2[Standard]" / "Unreal-Godot" / "UAL2_Standard.glb";
@@ -409,10 +420,10 @@ int main(int argc, char** argv) {
         Animator animator;
         animator.init(animLib);
 
-        if (hasSkinnedPlayer) {
+        if (hasMale) {
             const AnimationClip* testClip = animLib.findClipAny({"Idle_Loop", "Idle"});
             if (testClip) {
-                animLib.checkRetarget(*testClip, playerCharacter.getBoneNames());
+                animLib.checkRetarget(*testClip, playerMale.getBoneNames());
             }
         }
 
@@ -422,10 +433,6 @@ int main(int argc, char** argv) {
         // Realistic Sky, Full Moon, Stars, and Sahyadri Mountains
         SkySystem skySystem;
         skySystem.init();
-
-        // Living Wildlife: Animated Crows, Forest Stags in Mist, Bioluminescent Fireflies
-        WildlifeSystem wildlifeSystem;
-        wildlifeSystem.init();
 
         // Ground and interactive village/city platforms
         std::vector<ObstaclePlatform> platforms;
@@ -446,6 +453,7 @@ int main(int argc, char** argv) {
         std::printf("  W / S (or Up / Down Arrow):    Move Forward / Backward (Depth)\n");
         std::printf("  Space: Jump | Left Shift: Sprint\n");
         std::printf("  Q / E: Lower / Raise Will | Ctrl: Steady Breath | R: Red Thread Sense | Esc: Quit\n");
+        std::printf("  C: Switch Active Player Character (Male / Female)\n");
         std::fflush(stdout);
 
         // Run Phase 0 Physics Test Verification
@@ -458,6 +466,16 @@ int main(int argc, char** argv) {
 
             glfwPollEvents();
             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
+
+            // Toggle active character with 'C' key
+            bool cKeyNow = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+            if (cKeyNow && !lastCKeyState) {
+                if (hasMale && hasFemale) {
+                    activeCharIdx = 1 - activeCharIdx;
+                    std::printf("[Character] Switched active character to: %s\n", activeCharIdx == 0 ? "Male" : "Female");
+                }
+            }
+            lastCKeyState = cKeyNow;
 
             // Movement & Inputs in all directions
             bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
@@ -478,13 +496,31 @@ int main(int argc, char** argv) {
             playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
             meters.update(dt, false, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
 
-            // Update Living Environment & Wildlife
+            // Update Living Celestial Environment
             skySystem.update(dt);
-            wildlifeSystem.update(dt, playerPhysics.position);
+
+            // Determine active and companion characters
+            SkinnedModel& activePlayer = (activeCharIdx == 0 && hasMale) ? playerMale : ((hasFemale) ? playerFemale : playerMale);
+            bool hasSkinnedPlayer = (activeCharIdx == 0) ? hasMale : hasFemale;
+
+            SkinnedModel* companionChar = nullptr;
+            if (activeCharIdx == 0 && hasFemale) {
+                companionChar = &playerFemale;
+            } else if (activeCharIdx == 1 && hasMale) {
+                companionChar = &playerMale;
+            }
 
             // Animation Update (Phase 2 & 3 State Machine, Blending & 360-deg Facing)
             if (hasSkinnedPlayer) {
-                animator.update(dt, playerPhysics, playerCharacter);
+                animator.update(dt, playerPhysics, activePlayer);
+            }
+
+            // Companion character idle animation at Kaalvan village center
+            if (companionChar) {
+                const AnimationClip* companionClip = animLib.findClipAny({"Idle_Talking_Loop", "Sitting_Idle_Loop", "Idle_Loop", "Idle"});
+                if (companionClip) {
+                    companionChar->updateSkeleton(companionClip, (float)now, true);
+                }
             }
 
             // Smooth Cinematic Camera Tracking with depth
@@ -524,6 +560,7 @@ int main(int argc, char** argv) {
             ground.draw(program, glm::mat4(1.0f));
 
             // Draw World Props (City, Village, Forest, Ground paths)
+            glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
             for (const auto& prop : worldProps) {
                 if (prop.modelIdx < propTemplates.size()) {
                     glm::mat4 m = glm::translate(glm::mat4(1.0f), prop.pos);
@@ -533,14 +570,18 @@ int main(int argc, char** argv) {
                 }
             }
 
-            // 3. Draw Living Wildlife (Animated Crows, Forest Stags in Mist, Bioluminescent Fireflies)
-            wildlifeSystem.draw(view, proj, camPos);
+            // 3. Draw Village Companion Character (Kaalvan Village Shrine at X = 6.0)
+            if (companionChar) {
+                glm::mat4 compMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.0f, -0.6f));
+                compMatrix = glm::rotate(compMatrix, glm::radians(180.0f), glm::vec3(0, 1, 0));
+                companionChar->draw(program, compMatrix);
+            }
 
-            // 4. Draw Player Character (Skinned mesh or fallback)
+            // 4. Draw Active Player Character (Skinned mesh or fallback)
             glm::mat4 playerModelMatrix = glm::translate(glm::mat4(1.0f), playerPhysics.position);
             playerModelMatrix = glm::rotate(playerModelMatrix, glm::radians(animator.getFacingAngleDegrees()), glm::vec3(0, 1, 0));
             if (hasSkinnedPlayer) {
-                playerCharacter.draw(program, playerModelMatrix);
+                activePlayer.draw(program, playerModelMatrix);
             } else {
                 glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
                 playerFallback.draw(program, playerModelMatrix);

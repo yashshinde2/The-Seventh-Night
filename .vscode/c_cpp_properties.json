@@ -1,36 +1,42 @@
 {
   "configurations": [
     {
-      "name": "Win32",
+      "name": "x64",
       "includePath": [
         "${workspaceFolder}/src",
-        "${workspaceFolder}/src/anim",
-        "${workspaceFolder}/src/physics",
-        "${workspaceFolder}/src/game",
+        "${workspaceFolder}/src/**",
         "C:/vcpkg/installed/x64-windows/include",
-        "C:/vcpkg/installed/x64-windows/include/GL",
-        "C:/vcpkg/installed/x64-windows/include/GLFW",
-        "C:/vcpkg/installed/x64-windows/include/glm",
-        "${workspaceFolder}/vcpkg_installed/x64-windows/include",
-        "${workspaceFolder}/vcpkg_installed/x64-windows/include/GL",
-        "${workspaceFolder}/vcpkg_installed/x64-windows/include/GLFW",
-        "${workspaceFolder}/vcpkg_installed/x64-windows/include/glm",
-        "${workspaceFolder}/build"
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include"
       ],
       "defines": [
         "_DEBUG",
         "UNICODE",
-        "_UNICODE",
-        "GLEW_STATIC",
-        "CGLTF_IMPLEMENTATION",
-        "STB_IMAGE_IMPLEMENTATION"
+        "_UNICODE"
       ],
       "windowsSdkVersion": "10.0.26100.0",
       "compilerPath": "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe",
       "cStandard": "c17",
       "cppStandard": "c++17",
-      "intelliSenseMode": "windows-msvc-x64",
-      "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+      "intelliSenseMode": "windows-msvc-x64"
+    },
+    {
+      "name": "Win32",
+      "includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/src/**",
+        "C:/vcpkg/installed/x64-windows/include",
+        "${workspaceFolder}/vcpkg_installed/x64-windows/include"
+      ],
+      "defines": [
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE"
+      ],
+      "windowsSdkVersion": "10.0.26100.0",
+      "compilerPath": "C:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-msvc-x64"
     }
   ],
   "version": 4
