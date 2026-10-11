@@ -46,6 +46,9 @@ void main() {
                      aWeights.y * uJointMatrices[int(aJoints.y)] +
                      aWeights.z * uJointMatrices[int(aJoints.z)] +
                      aWeights.w * uJointMatrices[int(aJoints.w)];
+        if (length(skinMatrix[0]) < 0.001) {
+            skinMatrix = mat4(1.0);
+        }
     }
     vec4 world = uModel * skinMatrix * vec4(aPos, 1.0);
     vPos = world.xyz;
@@ -183,6 +186,8 @@ int main(int argc, char** argv) {
     glDisable(GL_CULL_FACE);
 
     GLuint program = makeProgram();
+    glUseProgram(program);
+    glUniform1i(glGetUniformLocation(program, "uTex"), 0);
 
     {
         // Environment Ground

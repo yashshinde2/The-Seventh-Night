@@ -425,8 +425,11 @@ void SkinnedModel::draw(GLuint program, const glm::mat4& modelMatrix) const {
     glUniformMatrix4fv(glGetUniformLocation(program, "uModel"), 1, GL_FALSE, &modelMatrix[0][0]);
     glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 1);
 
-    if (!jointMatrices_.empty()) {
-        glUniformMatrix4fv(glGetUniformLocation(program, "uJointMatrices"),
+    GLint loc = glGetUniformLocation(program, "uJointMatrices[0]");
+    if (loc == -1) loc = glGetUniformLocation(program, "uJointMatrices");
+
+    if (loc != -1 && !jointMatrices_.empty()) {
+        glUniformMatrix4fv(loc,
                            (GLsizei)std::min(jointMatrices_.size(), (size_t)128),
                            GL_FALSE, glm::value_ptr(jointMatrices_[0]));
     }

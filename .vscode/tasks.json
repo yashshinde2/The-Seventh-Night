@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build SeventhNight (Release)",
+      "type": "shell",
+      "command": "cmake --build build --config Release",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Run SeventhNight (Release)",
+      "type": "shell",
+      "command": ".\\build\\Release\\SeventhNight.exe",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build SeventhNight (Debug)",
+      "type": "shell",
+      "command": "cmake --build build --config Debug",
+      "group": "build",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "Run SeventhNight (Debug)",
+      "type": "shell",
+      "command": ".\\build\\Debug\\SeventhNight.exe",
+      "problemMatcher": []
+    }
+  ]
+}
