@@ -437,7 +437,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\The Seventh Night\src\anim\SkinnedModel.cpp" />
     <ClCompile Include="D:\The Seventh Night\src\physics\PhysicsEngine.cpp" />
     <ClCompile Include="D:\The Seventh Night\src\environment\SkySystem.cpp" />
-    <ClCompile Include="D:\The Seventh Night\src\environment\WildlifeSystem.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
