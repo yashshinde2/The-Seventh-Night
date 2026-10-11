@@ -18,7 +18,6 @@ add_executable(SeventhNight
     src/anim/Animator.cpp
     src/anim/SkinnedModel.cpp
     src/physics/PhysicsEngine.cpp
-    src/environment/SkySystem.cpp
 )
 
 target_include_directories(SeventhNight PRIVATE
