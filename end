@@ -1,4 +1,7 @@
-﻿14ac9e2 feat: complete Milestones 3-6 with scene format, advanced collision, HUD meters, and Will rules
+﻿7da033c feat: implement Milestone 7 Day 4 Grey Grove vertical slice with desaturation, choices, and The Ember
+89038bc feat: add scene renderer header, day4 grey grove scene, and build configuration files
+f79c211 docs: update end log with milestone progress
+14ac9e2 feat: complete Milestones 3-6 with scene format, advanced collision, HUD meters, and Will rules
 a67bb66 feat: add build configuration and initial main source file for SeventhNight
 07517c9 feat: add Scene system and initial Kaalvan Forest scene asset
 1afe7b4 feat: create end file with git commit history summary
@@ -10,6 +13,3 @@ fc92a6a feat: add initial engine setup and level loading for The Seventh Night
 3d6e395 chore: generate build artifacts and object files for CMake project
 a84402a feat: implement core game loop and rendering pipeline for The Seventh Night engine
 2a7c34c chore: remove temporary test output log file
-f090add feat: implement core physics engine, model loader, and animation systems
-96a424e feat: add skinned model, animation, and physics engine support
-643a57a feat: implement core 2.5D survival horror engine with OpenGL rendering and skeletal animation
