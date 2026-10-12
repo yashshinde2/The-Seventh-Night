@@ -1,20 +1,15 @@
-[33m6aaf99d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m feat: implement audio engine and model loading support
-[33m8dbb60d[m feat: add asset pack including 3D models, textures, and audio files
-[33mfc92a6a[m feat: add initial engine setup and level loading for The Seventh Night
-[33m6890218[m feat: add main engine implementation and core asset loading for The Seventh Night
-[33m4c93f93[m feat: initialize game engine with core systems, physics, and asset loading support
-[33m3d6e395[m chore: generate build artifacts and object files for CMake project
-[33ma84402a[m feat: implement core game loop and rendering pipeline for The Seventh Night engine
-[33m2a7c34c[m chore: remove temporary test output log file
-[33mf090add[m feat: implement core physics engine, model loader, and animation systems
-[33m96a424e[m feat: add skinned model, animation, and physics engine support
-[33m643a57a[m feat: implement core 2.5D survival horror engine with OpenGL rendering and skeletal animation
-[33m0fb9175[m feat: implement SkinnedModel class for loading and animating GLB models
-[33mb806e1e[m feat: initialize C++17 OpenGL core engine with skeletal animation and player physics systems
-[33m83f19ff[m chore: add VS Code C/C++ IntelliSense configuration file
-[33mf70d048[m chore: add VS Code C/C++ workspace configuration files
-[33m5d6496d[m feat: add CMake build configuration and VS Code workspace settings
-[33madb31a4[m feat: mark animated characters milestone as complete in project plan
-[33m33e2ef5[m build: add Animation.cpp and compile project binaries
-[33ma2e8406[m feat: implement skinned model animation and rendering system using cgltf
-[33m8aef9bc[m 7n
+﻿14ac9e2 feat: complete Milestones 3-6 with scene format, advanced collision, HUD meters, and Will rules
+a67bb66 feat: add build configuration and initial main source file for SeventhNight
+07517c9 feat: add Scene system and initial Kaalvan Forest scene asset
+1afe7b4 feat: create end file with git commit history summary
+6aaf99d feat: implement audio engine and model loading support
+8dbb60d feat: add asset pack including 3D models, textures, and audio files
+fc92a6a feat: add initial engine setup and level loading for The Seventh Night
+6890218 feat: add main engine implementation and core asset loading for The Seventh Night
+4c93f93 feat: initialize game engine with core systems, physics, and asset loading support
+3d6e395 chore: generate build artifacts and object files for CMake project
+a84402a feat: implement core game loop and rendering pipeline for The Seventh Night engine
+2a7c34c chore: remove temporary test output log file
+f090add feat: implement core physics engine, model loader, and animation systems
+96a424e feat: add skinned model, animation, and physics engine support
+643a57a feat: implement core 2.5D survival horror engine with OpenGL rendering and skeletal animation
