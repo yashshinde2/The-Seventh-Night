@@ -24,18 +24,22 @@
 #include "scene/Scene.h"
 #include "render/SceneRenderer.h"
 #include "render/HudRenderer.h"
+#include "game/Day4Narrative.h"
 
 int main(int argc, char** argv) {
     std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::setvbuf(stderr, nullptr, _IONBF, 0);
 
     bool testMode = false;
+    bool day4Mode = false;
     std::string customScenePath = "";
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--test" || arg == "--headless-test") {
             testMode = true;
+        } else if (arg == "--day4" || arg == "--vertical-slice") {
+            day4Mode = true;
         } else if (arg.find(".scene") != std::string::npos) {
             customScenePath = arg;
         }
@@ -87,10 +91,15 @@ int main(int argc, char** argv) {
     fs::path assetsRoot = AssetManager::findAssetsRoot(argv[0]);
     AssetManager::printDiscoveredAssets(assetsRoot);
 
-    // --- Phase 3: Scene Loading from Scene File ---
+    // --- Phase 3 & 7: Scene Loading from Scene File ---
     fs::path sceneFile = customScenePath.empty()
-        ? (assetsRoot / "scenes" / "kaalvan_forest.scene")
+        ? (day4Mode ? (assetsRoot / "scenes" / "day4_grey_grove.scene") : (assetsRoot / "scenes" / "kaalvan_forest.scene"))
         : fs::path(customScenePath);
+
+    Day4Narrative day4;
+    if (day4Mode || sceneFile.string().find("day4") != std::string::npos) {
+        day4.init();
+    }
 
     Scene currentScene;
     if (!currentScene.loadFromFile(sceneFile.string(), assetsRoot)) {
@@ -327,6 +336,24 @@ int main(int argc, char** argv) {
         }
         lastMKeyState = mKeyNow;
 
+        // Milestone 7: Day 4 Vertical Slice Inputs & State Machine
+        bool inputRest = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
+        bool inputHoldOn = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+
+        // Hotkey '4': Quick jump into Day 4 "Grey Grove" Vertical Slice
+        static bool last4KeyState = false;
+        bool key4Now = glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS;
+        if (key4Now && !last4KeyState) {
+            day4.init();
+            playerPhysics.position = glm::vec3(0.0f, 0.0f, 0.0f);
+            std::printf("[Level Select] Switched to Day 4 'The Grey Grove' Vertical Slice!\n");
+        }
+        last4KeyState = key4Now;
+
+        if (day4.isActive) {
+            day4.update(dt, playerPhysics, meters, audio, inputRest, inputHoldOn);
+        }
+
         // Physics & Meters Update using Scene Platforms
         playerPhysics.update(dt, currentScene.platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
         meters.update(dt, inDarkness, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
@@ -376,7 +403,8 @@ int main(int argc, char** argv) {
         float lightWill = (flashlightOn ? meters.will : 0.05f) * flicker;
 
         // --- Render Pass using SceneRenderer ---
-        renderer.beginFrame(fbw, fbh, camPos, target, currentScene.atmosphere, lanternPos, lightWill, meters.redThreadGlow, muzzleFlashTimer);
+        float desaturateFactor = day4.isActive ? day4.worldDesaturation : 0.0f;
+        renderer.beginFrame(fbw, fbh, camPos, target, currentScene.atmosphere, lanternPos, lightWill, meters.redThreadGlow, muzzleFlashTimer, desaturateFactor);
 
         // 1. Panoramic Backdrops
         renderer.drawBackdrops(currentScene.backdrops);
@@ -391,10 +419,21 @@ int main(int argc, char** argv) {
         renderer.drawCreatures(creatureModelMap, currentScene.creatures, (float)now);
 
         // 5. Companion Character
-        if (companionChar) {
+        if (companionChar && !day4.isActive) {
             glm::mat4 compMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.0f, -0.6f));
             compMatrix = glm::rotate(compMatrix, glm::radians(180.0f), glm::vec3(0, 1, 0));
             renderer.drawSkinnedCharacter(*companionChar, compMatrix);
+        }
+
+        // 5b. The Ember (Child with the Diya, scaled to 0.55)
+        if (day4.isActive && day4.emberVisible && hasMale) {
+            glm::mat4 emberMat = glm::translate(glm::mat4(1.0f), day4.emberPos);
+            emberMat = glm::scale(emberMat, glm::vec3(day4.emberScale));
+            const AnimationClip* emberClip = animLib.findClipAny({"Walk_Loop", "Idle_Loop", "Idle"});
+            if (emberClip) {
+                playerMale.updateSkeleton(emberClip, (float)now, true);
+            }
+            renderer.drawSkinnedCharacter(playerMale, emberMat);
         }
 
         // 6. Player Character
@@ -434,8 +473,14 @@ int main(int argc, char** argv) {
             }
         }
 
-        // 8. 2D Survival Horror HUD & Meters Overlay
-        hud.drawHUD(fbw, fbh, meters, equippedWeapon, flashlightOn, (float)now);
+        // 8. 2D Survival Horror HUD & Day 4 Overlay
+        std::string dayBanner = day4.isActive ? day4.currentDayBanner : "ACT I - DAY 1: KAALVAN FOREST";
+        std::string charTitle = day4.isActive ? day4.protagonistTitle : "AARAV";
+        hud.drawHUD(fbw, fbh, meters, equippedWeapon, flashlightOn, (float)now, dayBanner, charTitle);
+
+        if (day4.isActive) {
+            day4.renderUI(hud, fbw, fbh);
+        }
 
         glfwSwapBuffers(window);
 

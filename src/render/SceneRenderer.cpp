@@ -59,6 +59,7 @@ uniform vec3 uMoonDir;
 uniform vec3 uMoonColor;
 uniform vec3 uFogColor;
 uniform float uFogDensity;
+uniform float uDesaturate; // 0.0 = Full Color, 1.0 = Ash-Grey world
 
 out vec4 frag;
 
@@ -72,6 +73,8 @@ void main() {
     // Atmospheric painted visual novel backdrops: preserved with cinematic night tone
     if (uIsBackdrop == 1) {
         vec3 bgCol = base.rgb * 0.92 + vec3(0.015, 0.025, 0.045);
+        float bgGrey = dot(bgCol, vec3(0.299, 0.587, 0.114));
+        bgCol = mix(bgCol, vec3(bgGrey), uDesaturate);
         frag = vec4(bgCol, base.a);
         return;
     }
@@ -107,6 +110,10 @@ void main() {
     float fog = 1.0 - exp(-pow(fd * uFogDensity, 1.35));
     vec3 finalFogColor = mix(uFogColor, vec3(0.30, 0.08, 0.06), uRedGlow * 0.5);
     col = mix(col, finalFogColor, fog);
+
+    // Milestone 7: Day 4 Desaturation & Ash-Grey world post-processing
+    float grey = dot(col, vec3(0.299, 0.587, 0.114));
+    col = mix(col, vec3(grey), uDesaturate);
 
     frag = vec4(col, base.a);
 }
@@ -159,7 +166,7 @@ void SceneRenderer::shutdown() {
 
 void SceneRenderer::beginFrame(int fbw, int fbh, const glm::vec3& camPos, const glm::vec3& camTarget,
                               const SceneAtmosphere& atmosphere, const glm::vec3& lanternPos,
-                              float will, float redGlow, float muzzleFlash) {
+                              float will, float redGlow, float muzzleFlash, float desaturate) {
     cameraPos = camPos;
     viewMatrix = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
     float aspect = (fbh > 0) ? (float)fbw / (float)fbh : 16.0f / 9.0f;
@@ -184,6 +191,7 @@ void SceneRenderer::beginFrame(int fbw, int fbh, const glm::vec3& camPos, const 
     float lightWill = will + (muzzleFlash > 0.0f ? 4.5f : 0.0f);
     glUniform1f(glGetUniformLocation(program, "uWill"), lightWill);
     glUniform1f(glGetUniformLocation(program, "uRedGlow"), redGlow);
+    glUniform1f(glGetUniformLocation(program, "uDesaturate"), desaturate);
 }
 
 void SceneRenderer::drawBackdrops(const std::vector<SceneBackdropInstance>& backdrops) {

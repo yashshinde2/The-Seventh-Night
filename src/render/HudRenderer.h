@@ -20,7 +20,13 @@ public:
                  const glm::vec4& fillColor, const glm::vec4& bgColor, const glm::vec4& borderColor);
     void drawText(const std::string& text, float x, float y, float scale, const glm::vec4& color);
     void drawHUD(int screenWidth, int screenHeight, const PlayerMeters& meters,
-                 int equippedWeapon, bool lanternOn, float time);
+                 int equippedWeapon, bool lanternOn, float time,
+                 const std::string& dayTitle = "ACT I - DAY 1: KAALVAN FOREST",
+                 const std::string& charTitle = "AARAV");
+    void drawDialogueBox(int screenWidth, int screenHeight, const std::string& speaker,
+                         const std::string& line, const glm::vec4& speakerColor = glm::vec4(1.0f, 0.78f, 0.35f, 1.0f));
+    void drawChoiceBox(int screenWidth, int screenHeight, const std::string& opt1Key,
+                       const std::string& opt1Text, const std::string& opt2Key, const std::string& opt2Text);
     void end();
 
 private:

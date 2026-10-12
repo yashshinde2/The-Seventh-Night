@@ -19,7 +19,7 @@ He escapes on Day 7 and rebuilds his life. Full story: see the "Seventh Night Ga
 4. [x] Collision: axis-aligned boxes for ground, rocks, trees; platforms; one-way ledges; climbing
 5. [x] Meters: Body, Will, Stamina, Hope; HUD drawn with a simple text and bar renderer
 6. [x] Will rules: darkness drains it, lantern and memories restore it; heartbeat audio (miniaudio)
-7. [ ] **Vertical slice: Day 4 "Grey Grove"**: desaturated world, whispers, forced slow walk,
+7. [x] **Vertical slice: Day 4 "Grey Grove"**: desaturated world, whispers, forced slow walk,
        the Rest/Continue choice, the Ember appears, red thread glows, colour returns
 8. [ ] Mirror Cave puzzle (light beams and mirrors), then The Burden boss
 9. [ ] Dialogue and cutscene system; memory fragments; diary pages

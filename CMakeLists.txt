@@ -22,6 +22,7 @@ add_executable(SeventhNight
     src/scene/Scene.cpp
     src/render/SceneRenderer.cpp
     src/render/HudRenderer.cpp
+    src/game/Day4Narrative.cpp
 )
 
 target_include_directories(SeventhNight PRIVATE

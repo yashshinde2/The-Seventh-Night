@@ -328,19 +328,23 @@ void HudRenderer::drawText(const std::string& text, float x, float y, float scal
 }
 
 void HudRenderer::drawHUD(int screenWidth, int screenHeight, const PlayerMeters& meters,
-                         int equippedWeapon, bool lanternOn, float time) {
+                         int equippedWeapon, bool lanternOn, float time,
+                         const std::string& dayTitle, const std::string& charTitle) {
     begin(screenWidth, screenHeight);
 
     // --- 1. Top-Left Survival Horror Meters Panel (Glassmorphic dark container) ---
     float panelX = 24.0f;
     float panelY = 24.0f;
     float panelW = 280.0f;
-    float panelH = 135.0f;
+    float panelH = 145.0f;
 
     // Panel backdrop & subtle border
     drawRect(panelX, panelY, panelW, panelH, glm::vec4(0.04f, 0.06f, 0.09f, 0.82f));
     drawRect(panelX - 1.0f, panelY - 1.0f, panelW + 2.0f, 1.0f, glm::vec4(0.25f, 0.35f, 0.45f, 0.6f));
     drawRect(panelX - 1.0f, panelY + panelH, panelW + 2.0f, 1.0f, glm::vec4(0.25f, 0.35f, 0.45f, 0.6f));
+
+    // Protagonist Name Header
+    drawText(charTitle, panelX + 12.0f, panelY + 10.0f, 1.35f, glm::vec4(0.95f, 0.82f, 0.45f, 1.0f));
 
     // Meter Bar Dimensions
     float barX = panelX + 75.0f;
@@ -351,7 +355,7 @@ void HudRenderer::drawHUD(int screenWidth, int screenHeight, const PlayerMeters&
     glm::vec4 borderCol(0.20f, 0.25f, 0.32f, 0.8f);
 
     // Meter 1: WILL (Lantern Gold / Sanity) - Pulses red if low
-    float willY = panelY + 16.0f;
+    float willY = panelY + 30.0f;
     glm::vec4 willCol(0.95f, 0.72f, 0.24f, 1.0f);
     if (meters.will < 0.25f) {
         float pulse = 0.6f + 0.4f * std::sin(time * 8.0f);
@@ -398,26 +402,71 @@ void HudRenderer::drawHUD(int screenWidth, int screenHeight, const PlayerMeters&
     // --- 3. Mauli Red Thread Compass Indicator (Center Bottom) ---
     if (meters.redThreadGlow > 0.05f) {
         float threadAlpha = meters.redThreadGlow;
-        float thW = 320.0f;
+        float thW = 340.0f;
         float thH = 28.0f;
         float thX = ((float)screenW_ - thW) * 0.5f;
         float thY = (float)screenH_ - 80.0f;
 
         drawRect(thX, thY, thW, thH, glm::vec4(0.25f, 0.04f, 0.03f, 0.75f * threadAlpha));
-        drawText("MAULI RED THREAD: GUIDING EAST", thX + 24.0f, thY + 8.0f, 1.3f, glm::vec4(1.0f, 0.35f, 0.28f, threadAlpha));
+        drawText("MAULI RED THREAD: GUIDING HOME", thX + 20.0f, thY + 8.0f, 1.3f, glm::vec4(1.0f, 0.35f, 0.28f, threadAlpha));
     }
 
     // --- 4. Level & Day Heading Banner (Top Center) ---
-    float bannerW = 380.0f;
+    float bannerW = 460.0f;
     float bannerX = ((float)screenW_ - bannerW) * 0.5f;
     float bannerY = 16.0f;
-    drawText("THE SEVENTH NIGHT", bannerX + 55.0f, bannerY, 1.75f, glm::vec4(0.92f, 0.94f, 0.98f, 0.9f));
-    drawText("ACT I - DAY 1: KAALVAN FOREST", bannerX + 42.0f, bannerY + 20.0f, 1.15f, glm::vec4(0.6f, 0.7f, 0.8f, 0.75f));
+    drawText("THE SEVENTH NIGHT", bannerX + 90.0f, bannerY, 1.75f, glm::vec4(0.92f, 0.94f, 0.98f, 0.9f));
+    drawText(dayTitle, bannerX + 25.0f, bannerY + 22.0f, 1.25f, glm::vec4(0.65f, 0.75f, 0.85f, 0.8f));
 
     // --- 5. Controls Hints (Bottom Center) ---
-    float hintY = (float)screenH_ - 30.0f;
-    drawText("A/D: Move | W: Climb / Ledge | Ctrl: Steady Breath | R: Red Thread | X: Action",
-             ((float)screenW_ - 660.0f) * 0.5f, hintY, 1.1f, glm::vec4(0.55f, 0.65f, 0.75f, 0.65f));
+    float hintY = (float)screenH_ - 26.0f;
+    drawText("A/D: Move | W: Climb / Ledge | Ctrl: Steady Breath | R: Red Thread | M: Rekindle Diya",
+             ((float)screenW_ - 760.0f) * 0.5f, hintY, 1.1f, glm::vec4(0.55f, 0.65f, 0.75f, 0.65f));
+
+    end();
+}
+
+void HudRenderer::drawDialogueBox(int screenWidth, int screenHeight, const std::string& speaker,
+                                 const std::string& line, const glm::vec4& speakerColor) {
+    begin(screenWidth, screenHeight);
+
+    float boxW = std::min(820.0f, (float)screenW_ - 80.0f);
+    float boxH = 88.0f;
+    float boxX = ((float)screenW_ - boxW) * 0.5f;
+    float boxY = (float)screenH_ - 145.0f;
+
+    // Background translucent dialogue panel
+    drawRect(boxX, boxY, boxW, boxH, glm::vec4(0.02f, 0.03f, 0.05f, 0.90f));
+    drawRect(boxX - 2.0f, boxY - 2.0f, boxW + 4.0f, 2.0f, glm::vec4(0.4f, 0.5f, 0.6f, 0.7f));
+    drawRect(boxX - 2.0f, boxY + boxH, boxW + 4.0f, 2.0f, glm::vec4(0.4f, 0.5f, 0.6f, 0.7f));
+
+    // Speaker Name
+    drawText(speaker, boxX + 22.0f, boxY + 12.0f, 1.45f, speakerColor);
+
+    // Dialogue Line
+    drawText(line, boxX + 22.0f, boxY + 42.0f, 1.30f, glm::vec4(0.95f, 0.95f, 0.98f, 1.0f));
+
+    end();
+}
+
+void HudRenderer::drawChoiceBox(int screenWidth, int screenHeight, const std::string& opt1Key,
+                               const std::string& opt1Text, const std::string& opt2Key, const std::string& opt2Text) {
+    begin(screenWidth, screenHeight);
+
+    float boxW = 680.0f;
+    float boxH = 100.0f;
+    float boxX = ((float)screenW_ - boxW) * 0.5f;
+    float boxY = ((float)screenH_ - boxH) * 0.5f;
+
+    drawRect(boxX, boxY, boxW, boxH, glm::vec4(0.05f, 0.02f, 0.03f, 0.94f));
+    drawRect(boxX - 2.0f, boxY - 2.0f, boxW + 4.0f, 2.0f, glm::vec4(0.8f, 0.3f, 0.2f, 0.8f));
+    drawRect(boxX - 2.0f, boxY + boxH, boxW + 4.0f, 2.0f, glm::vec4(0.8f, 0.3f, 0.2f, 0.8f));
+
+    // Option 1 (Surrender / Rest)
+    drawText("[" + opt1Key + "] " + opt1Text, boxX + 28.0f, boxY + 22.0f, 1.35f, glm::vec4(0.65f, 0.65f, 0.70f, 0.9f));
+
+    // Option 2 (Hold On / Rekindle Hope)
+    drawText("[" + opt2Key + "] " + opt2Text, boxX + 28.0f, boxY + 58.0f, 1.45f, glm::vec4(1.0f, 0.82f, 0.35f, 1.0f));
 
     end();
 }
