@@ -34,6 +34,9 @@
     <ClCompile Include="D:\The Seventh Night\src\render\HudRenderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\The Seventh Night\src\game\Day4Narrative.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\The Seventh Night\CMakeLists.txt" />
