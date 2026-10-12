@@ -1,7 +1,7 @@
 #include "PhysicsEngine.h"
 #include <algorithm>
-
 #include <cmath>
+#include <cstdio>
 
 void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& platforms,
                             bool moveLeft, bool moveRight, bool sprint, bool jumpRequested, bool dropRequested,
@@ -13,6 +13,85 @@ void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& pla
     // Coyote timer
     if (onGround) coyoteTimer = 0.10f;
     else coyoteTimer = std::max(0.0f, coyoteTimer - dt);
+
+    AABB currentBox = getAABB();
+
+    // --- Phase 4: Climbing / Ledge Detection ---
+    const ObstaclePlatform* activeClimbPlat = nullptr;
+    for (const auto& plat : platforms) {
+        if (plat.type == SurfaceType::ClimbableVine || plat.type == SurfaceType::Ledge) {
+            // Check broad proximity around vine/ledge
+            AABB proximity = plat.bounds;
+            proximity.minPos.x -= 0.35f;
+            proximity.maxPos.x += 0.35f;
+            proximity.minPos.z -= 0.5f;
+            proximity.maxPos.z += 0.5f;
+
+            if (currentBox.intersects(proximity)) {
+                activeClimbPlat = &plat;
+                break;
+            }
+        }
+    }
+
+    if (!isClimbing && activeClimbPlat != nullptr) {
+        // Engage climb if player presses upward movement (W/Up) or jumps while in proximity
+        if (moveForward || (jumpRequested && !onGround)) {
+            isClimbing = true;
+            onGround = false;
+            velocity = glm::vec3(0.0f);
+        }
+    }
+
+    if (isClimbing) {
+        if (activeClimbPlat == nullptr) {
+            isClimbing = false;
+        } else {
+            // Climbing movement: vertical motion up/down
+            float climbSpeed = 3.2f;
+            if (moveForward) {
+                velocity.y = climbSpeed;
+            } else if (moveBackward) {
+                velocity.y = -climbSpeed;
+            } else {
+                velocity.y = 0.0f;
+            }
+
+            // Slight lateral adjustments while on vine
+            float targetVelX = 0.0f;
+            if (moveLeft) targetVelX = -moveSpeed * 0.4f;
+            if (moveRight) targetVelX = moveSpeed * 0.4f;
+            velocity.x += (targetVelX - velocity.x) * (1.0f - std::exp(-12.0f * dt));
+
+            position.y += velocity.y * dt;
+            position.x += velocity.x * dt;
+
+            // Jump off the climbable surface
+            if (jumpRequested) {
+                isClimbing = false;
+                velocity.y = jumpForce * 0.85f;
+                velocity.x = moveLeft ? -moveSpeed : (moveRight ? moveSpeed : 0.0f);
+            }
+            // Vault onto top ledge
+            else if (position.y >= activeClimbPlat->bounds.maxPos.y - 0.2f) {
+                position.y = activeClimbPlat->bounds.maxPos.y;
+                velocity.y = 0.0f;
+                isClimbing = false;
+                onGround = true;
+            }
+            // Drop to ground
+            else if (position.y <= 0.0f) {
+                position.y = 0.0f;
+                velocity.y = 0.0f;
+                isClimbing = false;
+                onGround = true;
+            }
+
+            return; // Physics update completed for climbing state
+        }
+    }
+
+    // --- Standard Locomotion Physics ---
 
     // Multi-directional planar input (X and Z)
     float inX = 0.0f;
@@ -41,14 +120,18 @@ void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& pla
     position.z = std::max(-3.5f, std::min(3.5f, position.z + velocity.z * dt));
     currentLaneZ = position.z;
 
-    // AABB X Collision Check against environment platforms
+    // AABB X Collision Check against solid environment obstacles (rocks, trees, walls)
     AABB boxX = getAABB();
     const float eps = 0.05f;
     for (const auto& plat : platforms) {
-        if (plat.isTrigger) continue;
+        if (plat.isTrigger || plat.type == SurfaceType::OneWay || plat.type == SurfaceType::ClimbableVine) continue;
+
         bool overlapsY = boxX.minPos.y < plat.bounds.maxPos.y - eps &&
                          boxX.maxPos.y > plat.bounds.minPos.y + eps;
-        if (overlapsY && boxX.intersects(plat.bounds)) {
+        bool overlapsZ = boxX.minPos.z < plat.bounds.maxPos.z - eps &&
+                         boxX.maxPos.z > plat.bounds.minPos.z + eps;
+
+        if (overlapsY && overlapsZ && boxX.intersects(plat.bounds)) {
             if (velocity.x > 0.0f) {
                 position.x = plat.bounds.minPos.x - size.x * 0.5f;
             } else if (velocity.x < 0.0f) {
@@ -67,6 +150,7 @@ void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& pla
     }
 
     velocity.y -= gravity * dt;
+    float prevPosY = position.y;
     position.y += velocity.y * dt;
 
     // Floor & Platform Landing
@@ -82,22 +166,38 @@ void CharacterPhysics::update(float dt, const std::vector<ObstaclePlatform>& pla
     AABB boxY = getAABB();
     for (const auto& plat : platforms) {
         if (plat.isTrigger) continue;
-        if (plat.type == SurfaceType::OneWay && dropRequested) continue;
 
+        // Skip climbing vines for floor landing
+        if (plat.type == SurfaceType::ClimbableVine) continue;
+
+        // One-Way Platform Logic: can drop through if dropRequested
+        if (plat.type == SurfaceType::OneWay) {
+            if (dropRequested) continue;
+            // Can only land on one-way platform from above when moving downwards
+            if (velocity.y <= 0.0f && prevPosY >= plat.bounds.maxPos.y - 0.15f) {
+                if (boxY.intersects(plat.bounds)) {
+                    position.y = plat.bounds.maxPos.y;
+                    velocity.y = 0.0f;
+                    onGround = true;
+                }
+            }
+            // Passing upwards freely through one-way platform: no collision!
+            continue;
+        }
+
+        // Solid platforms, rocks, and ground slabs
         if (boxY.intersects(plat.bounds)) {
-            if (velocity.y < 0.0f && (position.y - velocity.y * dt) >= plat.bounds.maxPos.y - 0.1f) {
+            if (velocity.y < 0.0f && prevPosY >= plat.bounds.maxPos.y - 0.15f) {
                 position.y = plat.bounds.maxPos.y;
                 velocity.y = 0.0f;
                 onGround = true;
-            } else if (velocity.y > 0.0f && plat.type != SurfaceType::OneWay) {
+            } else if (velocity.y > 0.0f) {
                 position.y = plat.bounds.minPos.y - size.y;
                 velocity.y = 0.0f;
             }
         }
     }
 }
-
-#include <cstdio>
 
 void runPhysicsPhase0Test() {
     std::printf("\n=== Running Phase 0 Physics Tests ===\n");
@@ -142,5 +242,91 @@ void runPhysicsPhase0Test() {
                 phys3.position.y, phys3.onGround ? "true" : "false");
 
     std::printf("=== Phase 0 Physics Tests Completed ===\n\n");
+    std::fflush(stdout);
+}
+
+void runPhysicsPhase4Test() {
+    std::printf("=== Running Phase 4 Advanced Collision Tests ===\n");
+    float dt = 1.0f / 60.0f;
+
+    // Test 4.1: One-Way Platform - Jumping up through from below
+    {
+        CharacterPhysics phys;
+        phys.position = glm::vec3(0.0f, 0.0f, 0.0f);
+        phys.velocity.y = 8.0f; // Jumping upwards
+
+        std::vector<ObstaclePlatform> plats = {
+            {AABB{glm::vec3(-5.0f, 2.0f, -2.0f), glm::vec3(5.0f, 2.2f, 2.0f)}, SurfaceType::OneWay, false, 1}
+        };
+
+        // Update 10 frames upwards
+        for (int i = 0; i < 10; ++i) {
+            phys.update(dt, plats, false, false, false, false, false);
+        }
+        // Player should be above Y=1.0 and passing through without collision stop
+        bool passedThrough = phys.position.y > 1.0f && phys.velocity.y > 0.0f;
+        std::printf("[%s] Test 4.1: One-Way platform jump-through upward: Y=%.2f, Vy=%.2f\n",
+                    passedThrough ? "PASS" : "FAIL", phys.position.y, phys.velocity.y);
+    }
+
+    // Test 4.2: One-Way Platform - Landing securely on top from above
+    {
+        CharacterPhysics phys;
+        phys.position = glm::vec3(0.0f, 4.0f, 0.0f); // Above platform
+        phys.velocity.y = -2.0f;
+
+        std::vector<ObstaclePlatform> plats = {
+            {AABB{glm::vec3(-5.0f, 2.0f, -2.0f), glm::vec3(5.0f, 2.2f, 2.0f)}, SurfaceType::OneWay, false, 1}
+        };
+
+        for (int i = 0; i < 60; ++i) {
+            phys.update(dt, plats, false, false, false, false, false);
+        }
+        bool landed = std::abs(phys.position.y - 2.2f) < 0.01f && phys.onGround;
+        std::printf("[%s] Test 4.2: One-Way platform landing from above: Y=%.2f, onGround=%s (Expected Y=2.20)\n",
+                    landed ? "PASS" : "FAIL", phys.position.y, phys.onGround ? "true" : "false");
+    }
+
+    // Test 4.3: One-Way Platform - Dropping through when dropRequested
+    {
+        CharacterPhysics phys;
+        phys.position = glm::vec3(0.0f, 2.2f, 0.0f); // Resting on platform
+        phys.onGround = true;
+
+        std::vector<ObstaclePlatform> plats = {
+            {AABB{glm::vec3(-5.0f, -1.0f, -5.0f), glm::vec3(5.0f, 0.0f, 5.0f)}, SurfaceType::Normal, false, 1},
+            {AABB{glm::vec3(-5.0f, 2.0f, -2.0f), glm::vec3(5.0f, 2.2f, 2.0f)}, SurfaceType::OneWay, false, 1}
+        };
+
+        // First frame with dropRequested
+        for (int i = 0; i < 30; ++i) {
+            phys.update(dt, plats, false, false, false, false, true); // dropRequested = true
+        }
+        bool dropped = phys.position.y < 2.0f;
+        std::printf("[%s] Test 4.3: One-Way platform drop-through: Y=%.2f (Expected < 2.0)\n",
+                    dropped ? "PASS" : "FAIL", phys.position.y);
+    }
+
+    // Test 4.4: Climbing Vine - Approaching, engaging climb, ascending, and vaulting onto ledge
+    {
+        CharacterPhysics phys;
+        phys.position = glm::vec3(10.0f, 0.0f, 0.0f); // At base of vine
+
+        std::vector<ObstaclePlatform> plats = {
+            {AABB{glm::vec3(9.5f, 0.0f, -1.0f), glm::vec3(10.5f, 3.5f, 1.0f)}, SurfaceType::ClimbableVine, false, 1}
+        };
+
+        // Move forward (W/Up) to climb
+        for (int i = 0; i < 80; ++i) {
+            phys.update(dt, plats, false, false, false, false, false, true, false); // moveForward = true
+        }
+
+        bool climbedAndVaulted = phys.position.y >= 3.4f;
+        std::printf("[%s] Test 4.4: Climbable vine ascent & ledge vault: Y=%.2f, isClimbing=%s, onGround=%s (Expected top Y~3.50)\n",
+                    climbedAndVaulted ? "PASS" : "FAIL", phys.position.y,
+                    phys.isClimbing ? "true" : "false", phys.onGround ? "true" : "false");
+    }
+
+    std::printf("=== Phase 4 Advanced Collision Tests Completed ===\n\n");
     std::fflush(stdout);
 }

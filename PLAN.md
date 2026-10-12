@@ -15,10 +15,10 @@ He escapes on Day 7 and rebuilds his life. Full story: see the "Seventh Night Ga
 ## Milestones
 1. [x] Window, glTF loading, side camera, depth lanes, lantern light, fog (this starter)
 2. [x] Animated characters & skeletal GPU skinning (loaded UAL1 & UAL2 clips, node-name keyframe samplers, GPU shader skinning, crossfade animator)
-3. [ ] Scene file format (simple text or JSON) listing models, positions, lanes; load a forest level from it
-4. [ ] Collision: axis-aligned boxes for ground, rocks, trees; platforms; one-way ledges; climbing
-5. [ ] Meters: Body, Will, Stamina, Hope; HUD drawn with a simple text and bar renderer
-6. [ ] Will rules: darkness drains it, lantern and memories restore it; heartbeat audio (miniaudio)
+3. [x] Scene file format (simple text or JSON) listing models, positions, lanes; load a forest level from it
+4. [x] Collision: axis-aligned boxes for ground, rocks, trees; platforms; one-way ledges; climbing
+5. [x] Meters: Body, Will, Stamina, Hope; HUD drawn with a simple text and bar renderer
+6. [x] Will rules: darkness drains it, lantern and memories restore it; heartbeat audio (miniaudio)
 7. [ ] **Vertical slice: Day 4 "Grey Grove"**: desaturated world, whispers, forced slow walk,
        the Rest/Continue choice, the Ember appears, red thread glows, colour returns
 8. [ ] Mirror Cave puzzle (light beams and mirrors), then The Burden boss

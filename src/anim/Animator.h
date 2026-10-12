@@ -41,6 +41,7 @@ private:
     const AnimationClip* clipAir_ = nullptr;
     const AnimationClip* clipFall_ = nullptr;
     const AnimationClip* clipLand_ = nullptr;
+    const AnimationClip* clipClimb_ = nullptr;
 
     AnimState currentState_ = AnimState::Idle;
     AnimState previousState_ = AnimState::Idle;

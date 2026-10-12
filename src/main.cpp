@@ -23,6 +23,7 @@
 #include "audio/AudioEngine.h"
 #include "scene/Scene.h"
 #include "render/SceneRenderer.h"
+#include "render/HudRenderer.h"
 
 int main(int argc, char** argv) {
     std::setvbuf(stdout, nullptr, _IONBF, 0);
@@ -74,6 +75,12 @@ int main(int argc, char** argv) {
     SceneRenderer renderer;
     if (!renderer.init()) {
         std::fprintf(stderr, "[Error] Failed to initialize SceneRenderer\n");
+        return 1;
+    }
+
+    HudRenderer hud;
+    if (!hud.init()) {
+        std::fprintf(stderr, "[Error] Failed to initialize HudRenderer\n");
         return 1;
     }
 
@@ -210,6 +217,7 @@ int main(int argc, char** argv) {
     std::fflush(stdout);
 
     runPhysicsPhase0Test();
+    runPhysicsPhase4Test();
 
     int testFrameCount = 0;
     const int kMaxTestFrames = 120;
@@ -300,11 +308,30 @@ int main(int argc, char** argv) {
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) meters.will = std::max(0.0f, meters.will - 0.6f * dt);
         if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) meters.will = std::min(1.0f, meters.will + 0.6f * dt);
 
+        // Milestone 6: Darkness and Will Rules
+        bool inDarkness = !flashlightOn || meters.lanternOil <= 0.0f;
+        if (meters.lanternOil <= 0.0f && flashlightOn) {
+            flashlightOn = false;
+            audio.playFlashlight(false);
+            std::printf("[Survival] Lantern oil depleted! Darkness surrounds you...\n");
+        }
+
+        // 'M' Key: Recall Childhood Memory / Rekindle Diya (Restores Will & Hope)
+        static bool lastMKeyState = false;
+        bool mKeyNow = glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS;
+        if (mKeyNow && !lastMKeyState) {
+            meters.restoreFromMemory();
+            meters.replenishOil();
+            audio.playMatchStrike();
+            std::printf("[Memories] Struck a match! Rekindled childhood diya. Will and Hope restored!\n");
+        }
+        lastMKeyState = mKeyNow;
+
         // Physics & Meters Update using Scene Platforms
         playerPhysics.update(dt, currentScene.platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
-        meters.update(dt, false, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
+        meters.update(dt, inDarkness, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
 
-        // Positional Audio Check against nearest Monster
+        // Positional Audio & Psychological Heartbeat Check
         glm::vec3 nearestMonsterPos(9999.0f);
         float nearestDist = 9999.0f;
         for (const auto& c : currentScene.creatures) {
@@ -314,7 +341,7 @@ int main(int argc, char** argv) {
                 nearestMonsterPos = c.pos;
             }
         }
-        audio.update(dt, playerPhysics.position, nearestMonsterPos);
+        audio.update(dt, playerPhysics.position, nearestMonsterPos, meters.will, inDarkness);
 
         // Active and companion characters
         SkinnedModel& activePlayer = (activeCharIdx == 0 && hasMale) ? playerMale : ((hasFemale) ? playerFemale : playerMale);
@@ -407,6 +434,9 @@ int main(int argc, char** argv) {
             }
         }
 
+        // 8. 2D Survival Horror HUD & Meters Overlay
+        hud.drawHUD(fbw, fbh, meters, equippedWeapon, flashlightOn, (float)now);
+
         glfwSwapBuffers(window);
 
         if (testMode) {
@@ -419,6 +449,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    hud.shutdown();
     renderer.shutdown();
     AudioEngine::instance().shutdown();
     glfwDestroyWindow(window);

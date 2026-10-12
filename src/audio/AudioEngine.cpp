@@ -144,10 +144,33 @@ void AudioEngine::playStinger() {
     playSFX("stinger", "Horror SFX Free/Stingers and Spooky Triggers/Stinger.wav");
 }
 
-void AudioEngine::update(float dt, const glm::vec3& playerPos, const glm::vec3& nearestMonsterPos) {
+void AudioEngine::playHeartbeat(bool fast) {
+    if (heartbeatCooldown_ > 0.0f) return;
+    heartbeatCooldown_ = fast ? 0.60f : 1.15f;
+    // Uses deep sub-bass thump from SFX pack
+    playSFX("heartbeat", "Horror SFX Free/Monsters & Ghosts/Robotic_bass.wav");
+}
+
+void AudioEngine::playBreathing(bool fast) {
+    if (breathCooldown_ > 0.0f) return;
+    breathCooldown_ = fast ? 1.8f : 3.5f;
+    std::string path = fast ?
+        "Horror SFX Free/Character/Breathing_fast.wav" :
+        "Horror SFX Free/Character/Breathing_slow.wav";
+    playSFX("breath", path);
+}
+
+void AudioEngine::playMatchStrike() {
+    playSFX("match", "Horror SFX Free/Character/Match_striking.wav");
+}
+
+void AudioEngine::update(float dt, const glm::vec3& playerPos, const glm::vec3& nearestMonsterPos,
+                         float will, bool inDarkness) {
     if (footstepCooldown_ > 0.0f) footstepCooldown_ -= dt;
     if (monsterGrowlCooldown_ > 0.0f) monsterGrowlCooldown_ -= dt;
     if (stingerCooldown_ > 0.0f) stingerCooldown_ -= dt;
+    if (heartbeatCooldown_ > 0.0f) heartbeatCooldown_ -= dt;
+    if (breathCooldown_ > 0.0f) breathCooldown_ -= dt;
 
     float dist = glm::distance(glm::vec2(playerPos.x, playerPos.z), glm::vec2(nearestMonsterPos.x, nearestMonsterPos.z));
     if (dist < 8.0f && stingerCooldown_ <= 0.0f) {
@@ -158,5 +181,13 @@ void AudioEngine::update(float dt, const glm::vec3& playerPos, const glm::vec3& 
     } else if (dist < 18.0f && monsterGrowlCooldown_ <= 0.0f) {
         playMonsterGrowl();
         monsterGrowlCooldown_ = 9.0f;
+    }
+
+    // Milestone 6: Psychological Heartbeat & Panic Audio
+    // Triggers when Will is drained (< 0.40) or when trapped in complete darkness
+    if (will < 0.40f || inDarkness) {
+        bool rapidPanic = (will < 0.20f) || (dist < 12.0f);
+        playHeartbeat(rapidPanic);
+        playBreathing(rapidPanic);
     }
 }

@@ -23,9 +23,13 @@ public:
     void playMonsterGrowl();
     void playMonsterRoar();
     void playStinger();
+    void playHeartbeat(bool fast);
+    void playBreathing(bool fast);
+    void playMatchStrike();
 
-    // Positional updates (e.g. growl frequency when near monsters)
-    void update(float dt, const glm::vec3& playerPos, const glm::vec3& nearestMonsterPos);
+    // Positional & psychological updates (heartbeat, whispers, growl frequency)
+    void update(float dt, const glm::vec3& playerPos, const glm::vec3& nearestMonsterPos,
+                float will = 1.0f, bool inDarkness = false);
 
 private:
     AudioEngine() = default;
@@ -35,5 +39,7 @@ private:
     float footstepCooldown_ = 0.0f;
     float monsterGrowlCooldown_ = 0.0f;
     float stingerCooldown_ = 0.0f;
+    float heartbeatCooldown_ = 0.0f;
+    float breathCooldown_ = 0.0f;
     bool bgmPlaying_ = false;
 };

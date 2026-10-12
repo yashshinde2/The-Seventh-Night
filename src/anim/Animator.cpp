@@ -27,6 +27,7 @@ void Animator::init(const AnimationLibrary& animLib) {
     clipAir_ = animLib.findClipAny({"Jump_Loop", "NinjaJump_Idle_Loop"}, "Air");
     clipFall_ = animLib.findClipAny({"Jump_Loop", "NinjaJump_Idle_Loop"}, "Fall");
     clipLand_ = animLib.findClipAny({"Jump_Land", "NinjaJump_Land"}, "Land");
+    clipClimb_ = animLib.findClipAny({"ClimbUp_1m", "Climb_Up", "Climb"}, "Climb");
 
     // Strip root motion on locomotion clips so physics moves the character
     if (clipWalk_) const_cast<AnimationClip*>(clipWalk_)->stripRootMotion();
@@ -57,7 +58,8 @@ static const AnimationClip* getClipForState(AnimState state,
                                             const AnimationClip* jStart,
                                             const AnimationClip* air,
                                             const AnimationClip* fall,
-                                            const AnimationClip* land) {
+                                            const AnimationClip* land,
+                                            const AnimationClip* climb) {
     switch (state) {
         case AnimState::Idle: return idle;
         case AnimState::Walk: return walk ? walk : idle;
@@ -66,12 +68,14 @@ static const AnimationClip* getClipForState(AnimState state,
         case AnimState::Air: return air ? air : idle;
         case AnimState::Fall: return fall ? fall : air;
         case AnimState::Land: return land ? land : idle;
+        case AnimState::Climb: return climb ? climb : idle;
         default: return idle;
     }
 }
 
 static bool isLoopingState(AnimState state) {
-    return (state == AnimState::Idle || state == AnimState::Walk || state == AnimState::Run || state == AnimState::Air || state == AnimState::Fall);
+    return (state == AnimState::Idle || state == AnimState::Walk || state == AnimState::Run ||
+            state == AnimState::Air || state == AnimState::Fall || state == AnimState::Climb);
 }
 
 void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& model) {
@@ -90,7 +94,9 @@ void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& m
     currentFacingY_ += diff * (1.0f - std::exp(-18.0f * dt));
 
     // Determine state from physics
-    if (!physics.onGround) {
+    if (physics.isClimbing) {
+        transitionTo(AnimState::Climb);
+    } else if (!physics.onGround) {
         if (physics.velocity.y > 1.5f) {
             transitionTo(AnimState::Air);
         } else {
@@ -126,7 +132,7 @@ void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& m
     prevTime_ += dt;
 
     // Sample current pose
-    const AnimationClip* currClip = getClipForState(currentState_, clipIdle_, clipWalk_, clipRun_, clipJumpStart_, clipAir_, clipFall_, clipLand_);
+    const AnimationClip* currClip = getClipForState(currentState_, clipIdle_, clipWalk_, clipRun_, clipJumpStart_, clipAir_, clipFall_, clipLand_, clipClimb_);
     bool currLoop = isLoopingState(currentState_);
     Pose currPose = model.samplePose(currClip, currentTime_, currLoop);
 
@@ -135,7 +141,7 @@ void Animator::update(float dt, const CharacterPhysics& physics, SkinnedModel& m
         blendTimer_ += dt;
         float factor = glm::clamp(blendTimer_ / blendDuration_, 0.0f, 1.0f);
 
-        const AnimationClip* prevClip = getClipForState(previousState_, clipIdle_, clipWalk_, clipRun_, clipJumpStart_, clipAir_, clipFall_, clipLand_);
+        const AnimationClip* prevClip = getClipForState(previousState_, clipIdle_, clipWalk_, clipRun_, clipJumpStart_, clipAir_, clipFall_, clipLand_, clipClimb_);
         bool prevLoop = isLoopingState(previousState_);
         Pose prevPose = model.samplePose(prevClip, prevTime_, prevLoop);
 

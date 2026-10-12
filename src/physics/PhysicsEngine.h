@@ -66,3 +66,4 @@ public:
 };
 
 void runPhysicsPhase0Test();
+void runPhysicsPhase4Test();

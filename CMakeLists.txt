@@ -21,6 +21,7 @@ add_executable(SeventhNight
     src/audio/AudioEngine.cpp
     src/scene/Scene.cpp
     src/render/SceneRenderer.cpp
+    src/render/HudRenderer.cpp
 )
 
 target_include_directories(SeventhNight PRIVATE
