@@ -439,6 +439,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="D:\The Seventh Night\src\audio\AudioEngine.cpp" />
     <ClCompile Include="D:\The Seventh Night\src\scene\Scene.cpp" />
     <ClCompile Include="D:\The Seventh Night\src\render\SceneRenderer.cpp" />
+    <ClCompile Include="D:\The Seventh Night\src\render\HudRenderer.cpp" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

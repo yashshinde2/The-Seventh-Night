@@ -1,0 +1,78 @@
+# ==============================================================================
+# The Seventh Night - Scene Definition
+# Level: Day 4 "The Grey Grove" (The Turning Point of Kaalvan Forest)
+# ==============================================================================
+
+[scene]
+name = The Grey Grove - Day 4 (Midpoint)
+ambient = 0.20 0.20 0.22
+moon_dir = -0.2 1.0 0.4
+moon_color = 0.35 0.38 0.45
+fog_color = 0.18 0.18 0.20
+fog_density = 0.025
+player_spawn = 0.0 0.0 0.0 1
+
+[backdrops]
+# texture_path pos_x pos_y pos_z width height
+backdrop = Fantasy_VN_Backgrounds/15_misty_graveyard_night.jpg -20.0 13.0 -22.0 85.0 38.0
+backdrop = Fantasy_VN_Backgrounds/03_forest_path_night.jpg 55.0 13.0 -22.0 85.0 38.0
+
+[models]
+# alias = relative_path_from_assets_root
+treeDead1 = Stylized Nature MegaKit[Standard]/glTF/DeadTree_1.gltf
+treeDead2 = Stylized Nature MegaKit[Standard]/glTF/DeadTree_2.gltf
+treeTwisted = Stylized Nature MegaKit[Standard]/glTF/TwistedTree_1.gltf
+rock1 = Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_1.gltf
+rock2 = Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_2.gltf
+rockPath = Stylized Nature MegaKit[Standard]/glTF/RockPath_Round_Wide.gltf
+fern = Stylized Nature MegaKit[Standard]/glTF/Fern_1.gltf
+pebble = Stylized Nature MegaKit[Standard]/glTF/Pebble_Round_1.gltf
+crate = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Prop_Crate.gltf
+
+[props]
+# alias pos_x pos_y pos_z scale rot_y lane
+
+# Faint ash path leading through the Grey Grove
+prop = rockPath 0.0 0.015 0.0 1.1 20.0 1
+prop = rockPath 4.0 0.015 0.0 1.1 50.0 1
+prop = rockPath 8.0 0.015 0.0 1.1 15.0 1
+prop = rockPath 12.0 0.015 0.0 1.1 80.0 1
+prop = rockPath 16.0 0.015 0.0 1.1 35.0 1
+prop = rockPath 20.0 0.015 0.0 1.1 65.0 1
+prop = rockPath 24.0 0.015 0.0 1.1 10.0 1
+prop = rockPath 28.0 0.015 0.0 1.1 45.0 1
+
+# Ash-grey dead trees framing the desolated path
+prop = treeDead1 -6.0 0.0 -4.5 1.2 30.0 2
+prop = treeDead2 -2.0 0.0 -4.0 1.1 75.0 2
+prop = treeDead1 3.0 0.0 -4.2 1.3 120.0 2
+prop = treeTwisted 7.5 0.0 -4.5 1.2 180.0 2
+prop = treeDead2 12.0 0.0 -4.0 1.25 240.0 2
+prop = treeDead1 17.5 0.0 -4.4 1.15 310.0 2
+
+# THE HOLLOW TREE (The Decision Point at X = 23.5)
+prop = treeTwisted 23.5 0.0 -2.8 1.6 45.0 1
+prop = rock1 22.0 0.0 -1.8 1.1 15.0 1
+prop = rock2 25.0 0.0 -1.6 1.0 -30.0 1
+
+# Foreground Framing Dead Branches (Lane 0 / Z > 2.0)
+prop = treeDead2 2.0 0.0 3.2 1.1 40.0 0
+prop = treeDead1 11.0 0.0 3.1 1.2 135.0 0
+prop = treeDead2 20.0 0.0 3.3 1.15 220.0 0
+prop = treeDead1 29.0 0.0 3.2 1.2 300.0 0
+
+# Sparse lifeless ground rocks & pebbles
+prop = pebble 5.0 0.0 0.8 1.0 30.0 1
+prop = pebble 14.0 0.0 -0.6 1.0 85.0 1
+prop = pebble 21.0 0.0 0.5 1.1 140.0 1
+prop = rock1 1.0 0.0 -1.5 0.8 10.0 1
+prop = rock2 10.0 0.0 -1.2 0.85 45.0 1
+prop = rock1 18.0 0.0 -1.4 0.9 90.0 1
+
+[colliders]
+# min_x min_y min_z max_x max_y max_z type lane is_trigger
+collider = -50.0 -1.0 -10.0 100.0 0.0 10.0 Normal 1 false
+collider = 22.0 0.0 -3.5 25.0 2.5 -2.0 Normal 1 false
+
+[creatures]
+# No aggressive monsters in the Grey Grove: only stillness and whispers

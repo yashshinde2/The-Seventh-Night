@@ -22,7 +22,7 @@ public:
 
     void beginFrame(int fbw, int fbh, const glm::vec3& camPos, const glm::vec3& camTarget,
                     const SceneAtmosphere& atmosphere, const glm::vec3& lanternPos,
-                    float will, float redGlow, float muzzleFlash);
+                    float will, float redGlow, float muzzleFlash, float desaturate = 0.0f);
 
     void drawBackdrops(const std::vector<SceneBackdropInstance>& backdrops);
     void drawGround(Model& ground);
