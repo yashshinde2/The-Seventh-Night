@@ -26,9 +26,16 @@ public:
     // Loads a .glb or .gltf file (Quaternius packs ship both).
     bool loadGLB(const std::string& path);
 
+    // Loads a .obj wave构建 file with optional texture.
+    bool loadOBJ(const std::string& path, const std::string& texturePath = "");
+
     // Simple built-in shapes, used as placeholders (player, ground).
     static Model box(const glm::vec3& size, const glm::vec4& color);
     static Model groundQuad(float halfSize, const glm::vec4& color);
+    static Model backdropQuad(float width, float height, GLuint texture);
+
+    // Helper to load any 2D image file as an OpenGL texture.
+    static GLuint loadTextureFromFile(const std::string& path);
 
     void draw(GLuint program, const glm::mat4& modelMatrix) const;
 

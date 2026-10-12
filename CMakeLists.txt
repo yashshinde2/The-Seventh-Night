@@ -18,6 +18,7 @@ add_executable(SeventhNight
     src/anim/Animator.cpp
     src/anim/SkinnedModel.cpp
     src/physics/PhysicsEngine.cpp
+    src/audio/AudioEngine.cpp
 )
 
 target_include_directories(SeventhNight PRIVATE
@@ -31,6 +32,7 @@ target_link_libraries(SeventhNight PRIVATE
     glfw
     GLEW::GLEW
     glm::glm
+    winmm
 )
 
 set_target_properties(SeventhNight PROPERTIES

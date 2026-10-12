@@ -10,6 +10,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 #include <map>
 
 namespace {
@@ -207,6 +209,164 @@ bool Model::loadGLB(const std::string& path) {
     return !meshes_.empty();
 }
 
+GLuint Model::loadTextureFromFile(const std::string& path) {
+    if (path.empty()) return 0;
+    int w = 0, h = 0, n = 0;
+    unsigned char* px = stbi_load(path.c_str(), &w, &h, &n, 4);
+    if (!px) {
+        std::fprintf(stderr, "Failed to load texture: %s\n", path.c_str());
+        return 0;
+    }
+    GLuint tex = 0;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, px);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    stbi_image_free(px);
+    return tex;
+}
+
+bool Model::loadOBJ(const std::string& path, const std::string& texturePath) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::fprintf(stderr, "Failed to open OBJ file: %s\n", path.c_str());
+        return false;
+    }
+
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec2> texcoords;
+    std::vector<glm::vec3> normals;
+
+    struct ObjVertex {
+        int v, vt, vn;
+        bool operator<(const ObjVertex& o) const {
+            if (v != o.v) return v < o.v;
+            if (vt != o.vt) return vt < o.vt;
+            return vn < o.vn;
+        }
+    };
+
+    std::vector<float> verts;
+    std::vector<unsigned> indices;
+    std::map<ObjVertex, unsigned> vertexMap;
+
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream iss(line);
+        std::string type;
+        iss >> type;
+        if (type == "v") {
+            glm::vec3 p;
+            iss >> p.x >> p.y >> p.z;
+            positions.push_back(p);
+        } else if (type == "vt") {
+            glm::vec2 t;
+            iss >> t.x >> t.y;
+            texcoords.push_back(t);
+        } else if (type == "vn") {
+            glm::vec3 n;
+            iss >> n.x >> n.y >> n.z;
+            normals.push_back(n);
+        } else if (type == "f") {
+            std::vector<ObjVertex> faceVerts;
+            std::string token;
+            while (iss >> token) {
+                ObjVertex v{-1, -1, -1};
+                size_t firstSlash = token.find('/');
+                if (firstSlash == std::string::npos) {
+                    v.v = std::stoi(token) - 1;
+                } else {
+                    v.v = std::stoi(token.substr(0, firstSlash)) - 1;
+                    size_t secondSlash = token.find('/', firstSlash + 1);
+                    if (secondSlash == std::string::npos) {
+                        std::string vtStr = token.substr(firstSlash + 1);
+                        if (!vtStr.empty()) v.vt = std::stoi(vtStr) - 1;
+                    } else {
+                        std::string vtStr = token.substr(firstSlash + 1, secondSlash - (firstSlash + 1));
+                        if (!vtStr.empty()) v.vt = std::stoi(vtStr) - 1;
+                        std::string vnStr = token.substr(secondSlash + 1);
+                        if (!vnStr.empty()) v.vn = std::stoi(vnStr) - 1;
+                    }
+                }
+                faceVerts.push_back(v);
+            }
+
+            for (size_t i = 1; i + 1 < faceVerts.size(); ++i) {
+                ObjVertex tri[3] = {faceVerts[0], faceVerts[i], faceVerts[i + 1]};
+                for (int c = 0; c < 3; ++c) {
+                    const auto& fv = tri[c];
+                    auto it = vertexMap.find(fv);
+                    if (it != vertexMap.end()) {
+                        indices.push_back(it->second);
+                    } else {
+                        unsigned newIndex = (unsigned)(verts.size() / 8);
+                        glm::vec3 pos = (fv.v >= 0 && fv.v < (int)positions.size()) ? positions[fv.v] : glm::vec3(0.0f);
+                        glm::vec3 norm = (fv.vn >= 0 && fv.vn < (int)normals.size()) ? normals[fv.vn] : glm::vec3(0.0f, 1.0f, 0.0f);
+                        glm::vec2 uv = (fv.vt >= 0 && fv.vt < (int)texcoords.size()) ? texcoords[fv.vt] : glm::vec2(0.0f);
+
+                        verts.push_back(pos.x);
+                        verts.push_back(pos.y);
+                        verts.push_back(pos.z);
+                        verts.push_back(norm.x);
+                        verts.push_back(norm.y);
+                        verts.push_back(norm.z);
+                        verts.push_back(uv.x);
+                        verts.push_back(uv.y);
+
+                        vertexMap[fv] = newIndex;
+                        indices.push_back(newIndex);
+                    }
+                }
+            }
+        }
+    }
+
+    if (indices.empty()) {
+        std::fprintf(stderr, "Failed to load geometry from OBJ: %s\n", path.c_str());
+        return false;
+    }
+
+    if (normals.empty()) {
+        for (size_t i = 0; i < indices.size(); i += 3) {
+            unsigned i0 = indices[i];
+            unsigned i1 = indices[i + 1];
+            unsigned i2 = indices[i + 2];
+            glm::vec3 p0(verts[i0 * 8], verts[i0 * 8 + 1], verts[i0 * 8 + 2]);
+            glm::vec3 p1(verts[i1 * 8], verts[i1 * 8 + 1], verts[i1 * 8 + 2]);
+            glm::vec3 p2(verts[i2 * 8], verts[i2 * 8 + 1], verts[i2 * 8 + 2]);
+            glm::vec3 normal = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+            for (unsigned idx : {i0, i1, i2}) {
+                verts[idx * 8 + 3] += normal.x;
+                verts[idx * 8 + 4] += normal.y;
+                verts[idx * 8 + 5] += normal.z;
+            }
+        }
+        for (size_t i = 0; i < verts.size(); i += 8) {
+            glm::vec3 norm(verts[i + 3], verts[i + 4], verts[i + 5]);
+            if (glm::length(norm) > 1e-4f) {
+                norm = glm::normalize(norm);
+                verts[i + 3] = norm.x;
+                verts[i + 4] = norm.y;
+                verts[i + 5] = norm.z;
+            }
+        }
+    }
+
+    GLuint tex = 0;
+    if (!texturePath.empty()) {
+        tex = loadTextureFromFile(texturePath);
+    }
+
+    meshes_.push_back(uploadMesh(verts, indices, tex, glm::vec4(1.0f)));
+    std::printf("Loaded OBJ %s (%zu vertices, %zu indices)\n", path.c_str(), verts.size() / 8, indices.size());
+    return true;
+}
+
 Model Model::box(const glm::vec3& size, const glm::vec4& color) {
     // Box with its base on y = 0, centered on x and z.
     struct Face { glm::vec3 n, u, v; };
@@ -244,6 +404,21 @@ Model Model::groundQuad(float h, const glm::vec4& color) {
     std::vector<unsigned> idx = {0, 2, 1, 0, 3, 2};
     Model m;
     m.meshes_.push_back(uploadMesh(verts, idx, 0, color));
+    return m;
+}
+
+Model Model::backdropQuad(float width, float height, GLuint texture) {
+    float hw = width * 0.5f;
+    float hh = height * 0.5f;
+    std::vector<float> verts = {
+        -hw, -hh, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 1.0f,
+         hw, -hh, 0.0f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+         hw,  hh, 0.0f,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+        -hw,  hh, 0.0f,  0.0f, 0.0f, 1.0f,  0.0f, 0.0f
+    };
+    std::vector<unsigned> idx = {0, 1, 2, 0, 2, 3};
+    Model m;
+    m.meshes_.push_back(uploadMesh(verts, idx, texture, glm::vec4(1.0f)));
     return m;
 }
 

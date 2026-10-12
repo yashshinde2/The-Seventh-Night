@@ -22,6 +22,9 @@
     <ClCompile Include="D:\The Seventh Night\src\physics\PhysicsEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="D:\The Seventh Night\src\audio\AudioEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="D:\The Seventh Night\CMakeLists.txt" />

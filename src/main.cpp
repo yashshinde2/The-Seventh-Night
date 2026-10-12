@@ -20,6 +20,7 @@
 #include "anim/Animator.h"
 #include "physics/PhysicsEngine.h"
 #include "game/GameMeters.h"
+#include "audio/AudioEngine.h"
 
 static const char* kVertexShader = R"(
 #version 330 core
@@ -71,6 +72,7 @@ uniform vec3 uLightPos;   // lantern position
 uniform vec3 uCamPos;
 uniform float uWill;      // 0..1, scales lantern brightness
 uniform float uRedGlow;   // mauli red thread glow factor
+uniform int uIsBackdrop;  // 1 for painted VN backgrounds
 
 out vec4 frag;
 
@@ -80,6 +82,13 @@ void main() {
 
     // Alpha cutout for leaves, ferns, vines, fences
     if (base.a < 0.25) discard;
+
+    // Atmospheric painted visual novel backdrops: preserved with cinematic night tone
+    if (uIsBackdrop == 1) {
+        vec3 bgCol = base.rgb * 0.92 + vec3(0.015, 0.025, 0.045);
+        frag = vec4(bgCol, base.a);
+        return;
+    }
 
     vec3 n = normalize(vNrm);
     if (!gl_FrontFacing) n = -n;
@@ -194,9 +203,22 @@ int main(int argc, char** argv) {
         Model ground = Model::groundQuad(200.0f, glm::vec4(0.18f, 0.28f, 0.18f, 1.0f));
         Model playerFallback = Model::box(glm::vec3(0.6f, 1.7f, 0.4f), glm::vec4(0.25f, 0.45f, 0.85f, 1.0f));
 
-        // --- Phase 1: Robust Asset Discovery ---
+        // --- Phase 1: Robust Asset Discovery & Visual Novel Night Backdrops ---
         fs::path assetsRoot = AssetManager::findAssetsRoot(argv[0]);
         AssetManager::printDiscoveredAssets(assetsRoot);
+
+        // 1. Panoramic Visual Novel Night Backdrops (Parallax Billboard System at Z = -22.0)
+        fs::path bgDir = assetsRoot / "Fantasy_VN_Backgrounds";
+        GLuint bgCityTex      = Model::loadTextureFromFile((bgDir / "23_city_gate_night.jpg").string());
+        GLuint bgVillageTex   = Model::loadTextureFromFile((bgDir / "04_village_square_night.jpg").string());
+        GLuint bgForestTex    = Model::loadTextureFromFile((bgDir / "03_forest_path_night.jpg").string());
+        GLuint bgGraveyardTex = Model::loadTextureFromFile((bgDir / "15_misty_graveyard_night.jpg").string());
+
+        Model bgCity      = Model::backdropQuad(85.0f, 38.0f, bgCityTex);
+        Model bgVillage   = Model::backdropQuad(85.0f, 38.0f, bgVillageTex);
+        Model bgForest    = Model::backdropQuad(85.0f, 38.0f, bgForestTex);
+        Model bgGraveyard = Model::backdropQuad(85.0f, 38.0f, bgGraveyardTex);
+        std::printf("[Backdrops] Loaded 4 Atmospheric VN Night Horizons (City, Village, Forest, Graveyard)\n");
 
         // Model storage and named lookup
         std::vector<Model> propTemplates;
@@ -214,7 +236,7 @@ int main(int argc, char** argv) {
             }
         };
 
-        // 1. Medieval Village Assets
+        // 2. Medieval Village Assets
         fs::path villageDir = assetsRoot / "Medieval Village MegaKit[Standard]" / "Medieval Village MegaKit[Standard]" / "glTF";
         loadProp("wagon", villageDir / "Prop_Wagon.gltf");
         loadProp("crate", villageDir / "Prop_Crate.gltf");
@@ -230,32 +252,32 @@ int main(int argc, char** argv) {
         loadProp("roofFront", villageDir / "Roof_Front_Brick4.gltf");
         loadProp("cornerBrick", villageDir / "Corner_Exterior_Brick.gltf");
 
-        // 2. Downtown City Assets
+        // 3. Downtown City Assets
         fs::path cityDir = assetsRoot / "Downtown City MegaKit[Standard]" / "Exports" / "glTF (Godot)";
         loadProp("cityBldSmall", cityDir / "Building_Small_1.gltf");
-        loadProp("cityBldMed", cityDir / "Building_Medium_2_001.gltf");
+        loadProp("cityBldMed",   cityDir / "Building_Medium_2_001.gltf");
         loadProp("cityBldLarge", cityDir / "Building_Large_2.gltf");
-        loadProp("cityStreet", cityDir / "Street_2Lane.gltf");
+        loadProp("cityStreet",   cityDir / "Street_2Lane.gltf");
         loadProp("citySidewalk", cityDir / "Sidewalk_Straight_3m.gltf");
 
-        // 3. Stylized Nature Assets
+        // 4. Stylized Nature Assets
         fs::path natureDir = assetsRoot / "Stylized Nature MegaKit[Standard]" / "glTF";
         loadProp("treeCommon1", natureDir / "CommonTree_1.gltf");
         loadProp("treeCommon2", natureDir / "CommonTree_2.gltf");
-        loadProp("treeDead1", natureDir / "DeadTree_1.gltf");
-        loadProp("treeDead2", natureDir / "DeadTree_2.gltf");
+        loadProp("treeDead1",   natureDir / "DeadTree_1.gltf");
+        loadProp("treeDead2",   natureDir / "DeadTree_2.gltf");
         loadProp("treeTwisted", natureDir / "TwistedTree_1.gltf");
-        loadProp("rock1", natureDir / "Rock_Medium_1.gltf");
-        loadProp("rock2", natureDir / "Rock_Medium_2.gltf");
-        loadProp("bush", natureDir / "Bush_Common.gltf");
-        loadProp("fern", natureDir / "Fern_1.gltf");
-        loadProp("mushroom", natureDir / "Mushroom_Common.gltf");
-        loadProp("rockPath", natureDir / "RockPath_Round_Wide.gltf");
-        loadProp("grassShort", natureDir / "Grass_Common_Short.gltf");
-        loadProp("grassTall", natureDir / "Grass_Wispy_Tall.gltf");
+        loadProp("rock1",       natureDir / "Rock_Medium_1.gltf");
+        loadProp("rock2",       natureDir / "Rock_Medium_2.gltf");
+        loadProp("bush",        natureDir / "Bush_Common.gltf");
+        loadProp("fern",        natureDir / "Fern_1.gltf");
+        loadProp("mushroom",    natureDir / "Mushroom_Common.gltf");
+        loadProp("rockPath",    natureDir / "RockPath_Round_Wide.gltf");
+        loadProp("grassShort",  natureDir / "Grass_Common_Short.gltf");
+        loadProp("grassTall",   natureDir / "Grass_Wispy_Tall.gltf");
         loadProp("flowerGroup", natureDir / "Flower_3_Group.gltf");
-        loadProp("pine", natureDir / "Pine_1.gltf");
-        loadProp("pebble", natureDir / "Pebble_Round_1.gltf");
+        loadProp("pine",        natureDir / "Pine_1.gltf");
+        loadProp("pebble",      natureDir / "Pebble_Round_1.gltf");
 
         // Additional CLI models if provided
         for (int i = 1; i < argc; ++i) {
@@ -273,24 +295,17 @@ int main(int argc, char** argv) {
 
         // --- Assemble World Across Distinct Narrative Zones ---
 
-        // ==========================================
         // ZONE 1: Western Industrial City Outskirts (X: -120 to -30)
-        // ==========================================
-        // Street paving and sidewalks along ground
         for (float x = -115.0f; x <= -30.0f; x += 12.0f) {
             placeProp("cityStreet", glm::vec3(x, 0.0f, 0.0f), 1.0f, 0.0f);
             placeProp("citySidewalk", glm::vec3(x, 0.0f, 3.2f), 1.0f, 0.0f);
         }
-
-        // City skyline background architecture
         placeProp("cityBldLarge", glm::vec3(-112.0f, 0.0f, -6.5f), 1.0f, 0.0f);
         placeProp("cityBldMed",   glm::vec3(-95.0f,  0.0f, -5.5f), 1.0f, 0.0f);
         placeProp("cityBldLarge", glm::vec3(-78.0f,  0.0f, -6.0f), 1.1f, 180.0f);
         placeProp("cityBldMed",   glm::vec3(-62.0f,  0.0f, -5.0f), 1.0f, 0.0f);
         placeProp("cityBldSmall", glm::vec3(-48.0f,  0.0f, -4.5f), 1.0f, 0.0f);
         placeProp("cityBldSmall", glm::vec3(-36.0f,  0.0f, -4.0f), 0.95f, 0.0f);
-
-        // Urban transition props (crates, encroaching dead trees, weeds, and pebbles)
         for (float x = -105.0f; x <= -35.0f; x += 16.0f) {
             placeProp("crate", glm::vec3(x + 2.0f, 0.0f, 2.2f), 1.2f, 15.0f);
             placeProp("crate", glm::vec3(x + 2.8f, 0.0f, 2.0f), 1.0f, 40.0f);
@@ -300,10 +315,7 @@ int main(int argc, char** argv) {
             placeProp("pebble", glm::vec3(x + 4.0f, 0.0f, 1.2f), 1.0f, x * 13.0f);
         }
 
-        // ==========================================
         // ZONE 2: The Medieval Village of Kaalvan (X: -28 to +28)
-        // ==========================================
-        // Cobblestone stone path connecting the village cottages
         for (float x = -26.0f; x <= 26.0f; x += 3.8f) {
             placeProp("rockPath", glm::vec3(x, 0.015f, 0.0f), 1.15f, (float)((int)(x * 5) % 180));
             placeProp("grassShort", glm::vec3(x + 1.2f, 0.0f, -1.5f), 0.9f, x * 17.0f);
@@ -323,8 +335,6 @@ int main(int argc, char** argv) {
         placeProp("crate",              glm::vec3(-22.5f, 0.0f, -1.5f), 1.1f, 15.0f);
         placeProp("crate",              glm::vec3(-21.8f, 0.0f, -1.6f), 1.0f, 30.0f);
         placeProp("crate",              glm::vec3(-22.2f, 0.9f, -1.5f), 0.8f, 5.0f);
-
-        // Wooden fences lining the village path
         for (float x = -26.0f; x <= -14.0f; x += 3.0f) {
             placeProp("fenceSingle", glm::vec3(x, 0.0f, 2.8f), 1.0f, 0.0f);
         }
@@ -358,54 +368,83 @@ int main(int argc, char** argv) {
             placeProp("fenceSingle", glm::vec3(x, 0.0f, 2.8f), 1.0f, 0.0f);
         }
 
-        // ==========================================
         // ZONE 3: Ancient Kaalvan Deep Forest (X: +28 to +120)
-        // ==========================================
-        // Background dense forest canopy (z = -3.5 to -6.5)
         for (float x = 28.0f; x <= 120.0f; x += 4.5f) {
             std::string tName = ((int)x % 3 == 0) ? "treeCommon1" : (((int)x % 3 == 1) ? "treeCommon2" : "treeTwisted");
             float scale = 0.85f + 0.35f * std::sin(x * 0.4f);
             float rot = (float)((int)(x * 19.0f) % 360);
             placeProp(tName, glm::vec3(x, 0.0f, -4.2f + 1.2f * std::sin(x * 0.2f)), scale, rot);
-            if ((int)x % 9 == 0) {
-                placeProp("treeDead2", glm::vec3(x + 2.0f, 0.0f, -5.5f), 1.1f, rot + 45.0f);
-            }
-            if ((int)x % 7 == 0) {
-                placeProp("pine", glm::vec3(x - 1.5f, 0.0f, -6.5f), 1.3f, rot + 90.0f);
-            }
+            if ((int)x % 9 == 0) placeProp("treeDead2", glm::vec3(x + 2.0f, 0.0f, -5.5f), 1.1f, rot + 45.0f);
+            if ((int)x % 7 == 0) placeProp("pine", glm::vec3(x - 1.5f, 0.0f, -6.5f), 1.3f, rot + 90.0f);
         }
-
-        // Midground rocks, ferns, mushrooms, and bushes
         for (float x = 32.0f; x <= 118.0f; x += 7.0f) {
             placeProp("rock1", glm::vec3(x, 0.0f, -0.8f + 0.6f * std::sin(x)), 0.9f, x * 15.0f);
             placeProp("bush",  glm::vec3(x + 2.5f, 0.0f, 0.2f), 1.0f, x * 30.0f);
             placeProp("mushroom", glm::vec3(x - 1.2f, 0.0f, -0.3f), 1.2f, x * 12.0f);
             placeProp("grassTall", glm::vec3(x + 1.0f, 0.0f, -0.5f), 1.0f, x * 21.0f);
         }
-
-        // Foreground silhouette framing (z = 2.4 to 3.2)
         for (float x = 30.0f; x <= 115.0f; x += 11.0f) {
             placeProp("treeTwisted", glm::vec3(x, 0.0f, 3.2f), 1.25f, x * 22.0f);
             placeProp("fern", glm::vec3(x + 1.5f, 0.0f, 2.5f), 1.1f, x * 17.0f);
             placeProp("fern", glm::vec3(x - 1.5f, 0.0f, 2.6f), 1.0f, x * 29.0f);
         }
 
-        // Load Skinned Characters & Animations dynamically from assetsRoot
-        fs::path maleCharPath = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Male_FullBody.gltf";
-        fs::path femaleCharPath = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Female_FullBody.gltf";
+        // --- 5. Characters Integration (Prefer Medieval Outfits, Fallback to Base) ---
+        fs::path modularOutfitDir = assetsRoot / "Modular Character Outfits - Fantasy[Standard]" / "Exports" / "glTF (Godot-Unreal)" / "Outfits";
+        fs::path maleRangerPath   = modularOutfitDir / "Male_Ranger.gltf";
+        fs::path femaleRangerPath = modularOutfitDir / "Female_Ranger.gltf";
+        fs::path baseMalePath     = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Male_FullBody.gltf";
+        fs::path baseFemalePath   = assetsRoot / "Universal Base Characters[Standard]" / "Universal Base Characters[Standard]" / "Base Characters" / "Godot - UE" / "Superhero_Female_FullBody.gltf";
 
         SkinnedModel playerMale;
-        bool hasMale = playerMale.loadGLB(maleCharPath.string());
-        std::printf("[Character] Load Male Character '%s': %s\n", maleCharPath.filename().string().c_str(), hasMale ? "SUCCESS" : "FAILED");
+        bool hasMale = playerMale.loadGLB(maleRangerPath.string());
+        if (!hasMale) hasMale = playerMale.loadGLB(baseMalePath.string());
+        std::printf("[Character] Male Protagonist (Ranger / Aarav): %s\n", hasMale ? "LOADED" : "FAILED");
 
         SkinnedModel playerFemale;
-        bool hasFemale = playerFemale.loadGLB(femaleCharPath.string());
-        std::printf("[Character] Load Female Character '%s': %s\n", femaleCharPath.filename().string().c_str(), hasFemale ? "SUCCESS" : "FAILED");
+        bool hasFemale = playerFemale.loadGLB(femaleRangerPath.string());
+        if (!hasFemale) hasFemale = playerFemale.loadGLB(baseFemalePath.string());
+        std::printf("[Character] Female Companion / Ranger: %s\n", hasFemale ? "LOADED" : "FAILED");
 
-        if (!hasMale && !hasFemale) {
-            std::fprintf(stderr, "\n[WARNING] Phase 1: Player character models failed to load! Using fallback blue box.\n");
-        }
+        // --- 6. Monsters & Creatures Integration ---
+        fs::path bestiaryDir = assetsRoot / "Bestiary - Dungeon Monsters Kit[Standard]" / "Exports" / "GLB (Godot-Unreal)";
+        fs::path objDir      = assetsRoot / "OBJ";
 
+        Model monsterImp;
+        bool hasImp = monsterImp.loadGLB((bestiaryDir / "Imp.glb").string());
+        std::printf("[Bestiary] Imp Creature: %s\n", hasImp ? "LOADED" : "FAILED");
+
+        Model monsterPuglin;
+        bool hasPuglin = monsterPuglin.loadGLB((bestiaryDir / "Puglin.glb").string());
+        std::printf("[Bestiary] Puglin Creature: %s\n", hasPuglin ? "LOADED" : "FAILED");
+
+        Model monsterSkeleton;
+        bool hasSkeleton = monsterSkeleton.loadOBJ((objDir / "Skeleton.obj").string());
+        std::printf("[Bestiary] Graveyard Skeleton: %s\n", hasSkeleton ? "LOADED" : "FAILED");
+
+        Model monsterDragon;
+        bool hasDragon = monsterDragon.loadOBJ((objDir / "Dragon.obj").string());
+        std::printf("[Bestiary] Shrine Dragon: %s\n", hasDragon ? "LOADED" : "FAILED");
+
+        // --- 7. Weapons Integration ---
+        fs::path shotgunObj = assetsRoot / "PSXShotgunPack[FIXED]" / "Files" / "DoubleBarrelShotgun" / "DoubleBarrelShotgun.obj";
+        fs::path shotgunTex = assetsRoot / "PSXShotgunPack[FIXED]" / "Files" / "DoubleBarrelShotgun" / "Textures" / "DBShotgunText.png";
+        Model weaponShotgun;
+        bool hasShotgun = weaponShotgun.loadOBJ(shotgunObj.string(), shotgunTex.string());
+        std::printf("[Arsenal] Double Barrel Shotgun: %s\n", hasShotgun ? "LOADED" : "FAILED");
+
+        Model weaponClaymore;
+        bool hasClaymore = weaponClaymore.loadOBJ((objDir / "Claymore.obj").string());
+        std::printf("[Arsenal] Medieval Claymore: %s\n", hasClaymore ? "LOADED" : "FAILED");
+
+        Model weaponAxe;
+        bool hasAxe = weaponAxe.loadOBJ((objDir / "Axe.obj").string());
+
+        Model weaponShield;
+        bool hasShield = weaponShield.loadOBJ((objDir / "Shield_Round.obj").string());
+        std::printf("[Arsenal] War Axe & Shield: %s\n", (hasAxe && hasShield) ? "LOADED" : "FAILED");
+
+        // --- 8. Animation System ---
         int activeCharIdx = 0; // 0 = Male, 1 = Female
         bool lastCKeyState = false;
 
@@ -414,22 +453,16 @@ int main(int argc, char** argv) {
 
         AnimationLibrary animLib;
         bool okAnim1 = animLib.loadGLBAnimations(ual1Path.string());
-        std::printf("[Phase 1] Load UAL1 Animations '%s': %s\n", ual1Path.filename().string().c_str(), okAnim1 ? "SUCCESS" : "FAILED");
-
         bool okAnim2 = animLib.loadGLBAnimations(ual2Path.string());
-        std::printf("[Phase 1] Load UAL2 Animations '%s': %s\n", ual2Path.filename().string().c_str(), okAnim2 ? "SUCCESS" : "FAILED");
-
-        animLib.printClipNames();
+        std::printf("[Anim] Universal Animations: %s\n", (okAnim1 || okAnim2) ? "LOADED" : "FAILED");
 
         Animator animator;
         animator.init(animLib);
 
-        if (hasMale) {
-            const AnimationClip* testClip = animLib.findClipAny({"Idle_Loop", "Idle"});
-            if (testClip) {
-                animLib.checkRetarget(*testClip, playerMale.getBoneNames());
-            }
-        }
+        // --- 9. Audio Engine Initialized with Spooky Ambience BGM ---
+        AudioEngine& audio = AudioEngine::instance();
+        audio.init();
+        audio.playBGM("Horror SFX Free/Stingers and Spooky Triggers/Spooky Ambience.wav", true);
 
         CharacterPhysics playerPhysics;
         PlayerMeters meters;
@@ -437,32 +470,46 @@ int main(int argc, char** argv) {
         // Ground and interactive village/city platforms
         std::vector<ObstaclePlatform> platforms;
         platforms.push_back({AABB{glm::vec3(-150.0f, -1.0f, -10.0f), glm::vec3(150.0f, 0.0f, 10.0f)}, SurfaceType::Normal, false, 1});
-        // Wagon platform at X = -16.5
         platforms.push_back({AABB{glm::vec3(-17.5f, 0.0f, -2.0f), glm::vec3(-15.5f, 0.85f, -0.4f)}, SurfaceType::OneWay, false, 1});
-        // Crate stack platform at X = -22.0
         platforms.push_back({AABB{glm::vec3(-23.0f, 0.0f, -2.5f), glm::vec3(-21.0f, 0.95f, -0.6f)}, SurfaceType::OneWay, false, 1});
-        // Wagon platform at X = 15.0
         platforms.push_back({AABB{glm::vec3(14.0f, 0.0f, -2.0f), glm::vec3(16.0f, 0.85f, -0.4f)}, SurfaceType::OneWay, false, 1});
 
         float camX = 0.0f;
         double lastTime = glfwGetTime();
 
-        std::printf("\n=== The Seventh Night Engine Initialized ===\n");
+        // Combat & Weapon State
+        int equippedWeapon = 0; // 0: Lantern, 1: Claymore, 2: Shotgun, 3: Axe & Shield
+        bool lastFKeyState = false;
+        bool lastXKeyState = false;
+        bool lastLKeyState = false;
+        bool flashlightOn = true;
+        float muzzleFlashTimer = 0.0f;
+
+        std::printf("\n======================================================\n");
+        std::printf("  The Seventh Night — Narrative Survival Horror Engine\n");
+        std::printf("======================================================\n");
         std::printf("Controls:\n");
-        std::printf("  A / D (or Left / Right Arrow): Move Left / Right\n");
-        std::printf("  W / S (or Up / Down Arrow):    Move Forward / Backward (Depth)\n");
-        std::printf("  Space: Jump | Left Shift: Sprint\n");
-        std::printf("  Q / E: Lower / Raise Will | Ctrl: Steady Breath | R: Red Thread Sense | Esc: Quit\n");
-        std::printf("  C: Switch Active Player Character (Male / Female)\n");
+        std::printf("  A / D (Left/Right) : Move Left / Right (Planar 2.5D)\n");
+        std::printf("  W / S (Up/Down)    : Move Depth (Z-Axis path traversal)\n");
+        std::printf("  Space / Shift      : Jump / Sprint (Footstep SFX)\n");
+        std::printf("  F                  : Cycle Weapon (Lantern -> Claymore -> Shotgun -> Axe)\n");
+        std::printf("  X / Left Mouse     : Attack / Fire (Swing woosh & Shotgun blast)\n");
+        std::printf("  L                  : Toggle Lantern / Flashlight (Click SFX)\n");
+        std::printf("  C                  : Switch Playable Character (Ranger / Companion)\n");
+        std::printf("  Q / E              : Lower / Raise Will (Light intensity)\n");
+        std::printf("  R                  : Mauli Red Thread Supernatural Sense\n");
+        std::printf("  Esc                : Quit Game\n");
+        std::printf("======================================================\n\n");
         std::fflush(stdout);
 
-        // Run Phase 0 Physics Test Verification
         runPhysicsPhase0Test();
 
         while (!glfwWindowShouldClose(window)) {
             double now = glfwGetTime();
             float dt = (float)std::min(now - lastTime, 0.05);
             lastTime = now;
+
+            if (muzzleFlashTimer > 0.0f) muzzleFlashTimer -= dt;
 
             glfwPollEvents();
             if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, 1);
@@ -472,10 +519,49 @@ int main(int argc, char** argv) {
             if (cKeyNow && !lastCKeyState) {
                 if (hasMale && hasFemale) {
                     activeCharIdx = 1 - activeCharIdx;
-                    std::printf("[Character] Switched active character to: %s\n", activeCharIdx == 0 ? "Male" : "Female");
+                    std::printf("[Character] Active protagonist switched to: %s\n", activeCharIdx == 0 ? "Male Ranger" : "Female Ranger");
                 }
             }
             lastCKeyState = cKeyNow;
+
+            // Toggle equipped weapon with 'F' key
+            bool fKeyNow = glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS;
+            if (fKeyNow && !lastFKeyState) {
+                equippedWeapon = (equippedWeapon + 1) % 4;
+                const char* wNames[] = {"Lantern / Unarmed", "Claymore", "Double Barrel Shotgun", "War Axe & Round Shield"};
+                std::printf("[Arsenal] Equipped: %s\n", wNames[equippedWeapon]);
+                audio.playWeaponSwing();
+            }
+            lastFKeyState = fKeyNow;
+
+            // Combat Attack / Fire Action with 'X' key or Left Mouse Button
+            bool xKeyNow = glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS || glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+            if (xKeyNow && !lastXKeyState) {
+                if (equippedWeapon == 1) {
+                    audio.playWeaponSwing();
+                    std::printf("[Combat] Cleave attack with Claymore!\n");
+                } else if (equippedWeapon == 2) {
+                    audio.playMonsterRoar();
+                    audio.playStinger();
+                    muzzleFlashTimer = 0.20f;
+                    std::printf("[Combat] BOOM! Double-Barrel Shotgun discharged!\n");
+                } else if (equippedWeapon == 3) {
+                    audio.playWeaponSwing();
+                    std::printf("[Combat] Heavy strike with War Axe!\n");
+                } else {
+                    audio.playWeaponSwing();
+                    std::printf("[Combat] Swung lantern defensively!\n");
+                }
+            }
+            lastXKeyState = xKeyNow;
+
+            // Flashlight / Lantern Toggle with 'L' key
+            bool lKeyNow = glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS;
+            if (lKeyNow && !lastLKeyState) {
+                flashlightOn = !flashlightOn;
+                audio.playFlashlight(flashlightOn);
+            }
+            lastLKeyState = lKeyNow;
 
             // Movement & Inputs in all directions
             bool moveLeft = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS;
@@ -489,12 +575,35 @@ int main(int argc, char** argv) {
             bool steadyBreath = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS && !moveLeft && !moveRight && !moveForward && !moveBackward;
             bool redThread = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
 
+            // Footstep audio triggered during movement
+            if (moveLeft || moveRight || moveForward || moveBackward) {
+                audio.playFootstep(sprint);
+            }
+
             if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) meters.will = std::max(0.0f, meters.will - 0.6f * dt);
             if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) meters.will = std::min(1.0f, meters.will + 0.6f * dt);
 
-            // Physics & Meters Update (with 360-degree planar input)
+            // Physics & Meters Update
             playerPhysics.update(dt, platforms, moveLeft, moveRight, sprint, jumpReq, dropReq, moveForward, moveBackward);
             meters.update(dt, false, sprint && (moveLeft || moveRight || moveForward || moveBackward), steadyBreath, redThread);
+
+            // Positional Audio Check against nearest Monster
+            std::vector<glm::vec3> monsterPositions;
+            if (hasImp) monsterPositions.push_back(glm::vec3(52.0f, 0.0f, -1.2f));
+            if (hasPuglin) monsterPositions.push_back(glm::vec3(88.0f, 0.0f, -0.8f));
+            if (hasSkeleton) monsterPositions.push_back(glm::vec3(132.0f, 0.0f, -1.0f));
+            if (hasDragon) monsterPositions.push_back(glm::vec3(175.0f, 2.5f, -6.0f));
+
+            glm::vec3 nearestMonsterPos(9999.0f);
+            float nearestDist = 9999.0f;
+            for (const auto& mp : monsterPositions) {
+                float d = glm::distance(glm::vec2(playerPhysics.position.x, playerPhysics.position.z), glm::vec2(mp.x, mp.z));
+                if (d < nearestDist) {
+                    nearestDist = d;
+                    nearestMonsterPos = mp;
+                }
+            }
+            audio.update(dt, playerPhysics.position, nearestMonsterPos);
 
             // Determine active and companion characters
             SkinnedModel& activePlayer = (activeCharIdx == 0 && hasMale) ? playerMale : ((hasFemale) ? playerFemale : playerMale);
@@ -507,7 +616,7 @@ int main(int argc, char** argv) {
                 companionChar = &playerMale;
             }
 
-            // Animation Update (Phase 2 & 3 State Machine, Blending & 360-deg Facing)
+            // Animation Update
             if (hasSkinnedPlayer) {
                 animator.update(dt, playerPhysics, activePlayer);
             }
@@ -520,7 +629,7 @@ int main(int argc, char** argv) {
                 }
             }
 
-            // Smooth Cinematic Camera Tracking with depth
+            // Smooth Cinematic Camera Tracking
             camX += (playerPhysics.position.x - camX) * std::min(1.0f, 4.0f * dt);
             glm::vec3 camPos(camX, 2.6f, 10.0f);
             glm::vec3 target(camX, 1.3f, playerPhysics.position.z * 0.35f);
@@ -536,7 +645,6 @@ int main(int argc, char** argv) {
             glClearColor(0.015f, 0.035f, 0.075f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // Main 3D World Geometry Pass (Rendering assets from assets folder)
             glUseProgram(program);
             glUniformMatrix4fv(glGetUniformLocation(program, "uView"), 1, GL_FALSE, &view[0][0]);
             glUniformMatrix4fv(glGetUniformLocation(program, "uProj"), 1, GL_FALSE, &proj[0][0]);
@@ -546,15 +654,37 @@ int main(int argc, char** argv) {
             glUniform3fv(glGetUniformLocation(program, "uLightPos"), 1, &lanternPos[0]);
 
             float flicker = 0.92f + 0.08f * std::sin((float)now * 17.0f) * std::sin((float)now * 5.3f);
-            glUniform1f(glGetUniformLocation(program, "uWill"), meters.will * flicker);
+            float lightWill = (flashlightOn ? meters.will : 0.05f) * flicker + (muzzleFlashTimer > 0.0f ? 4.5f : 0.0f);
+            glUniform1f(glGetUniformLocation(program, "uWill"), lightWill);
             glUniform1f(glGetUniformLocation(program, "uRedGlow"), meters.redThreadGlow);
 
-            // Draw Ground Plane
+            // 1. Render Atmospheric Parallax Visual Novel Backdrops (Painted Night Horizons at Z = -22.0)
+            glUniform1i(glGetUniformLocation(program, "uIsBackdrop"), 1);
+            glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
+
+            // Zone 1 City Horizon
+            glm::mat4 bgCityMat = glm::translate(glm::mat4(1.0f), glm::vec3(-72.0f, 13.0f, -22.0f));
+            bgCity.draw(program, bgCityMat);
+
+            // Zone 2 Village Square Horizon
+            glm::mat4 bgVillageMat = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 13.0f, -22.0f));
+            bgVillage.draw(program, bgVillageMat);
+
+            // Zone 3 Deep Forest Horizon
+            glm::mat4 bgForestMat = glm::translate(glm::mat4(1.0f), glm::vec3(74.0f, 13.0f, -22.0f));
+            bgForest.draw(program, bgForestMat);
+
+            // Zone 4 Graveyard & Ruin Horizon
+            glm::mat4 bgGraveyardMat = glm::translate(glm::mat4(1.0f), glm::vec3(145.0f, 13.0f, -22.0f));
+            bgGraveyard.draw(program, bgGraveyardMat);
+
+            glUniform1i(glGetUniformLocation(program, "uIsBackdrop"), 0);
+
+            // 2. Draw Ground Plane
             glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
             ground.draw(program, glm::mat4(1.0f));
 
-            // Draw World Props (City, Village, Forest, Ground paths)
-            glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
+            // 3. Draw World Props (City buildings, cottages, wagons, trees, rocks)
             for (const auto& prop : worldProps) {
                 if (prop.modelIdx < propTemplates.size()) {
                     glm::mat4 m = glm::translate(glm::mat4(1.0f), prop.pos);
@@ -564,14 +694,43 @@ int main(int argc, char** argv) {
                 }
             }
 
-            // 3. Draw Village Companion Character (Kaalvan Village Shrine at X = 6.0)
+            // 4. Draw Bestiary Monsters & Fantasy Creatures
+            if (hasImp) {
+                glm::mat4 impMat = glm::translate(glm::mat4(1.0f), glm::vec3(52.0f, 0.0f, -1.2f));
+                impMat = glm::rotate(impMat, glm::radians(35.0f + 8.0f * std::sin((float)now * 2.5f)), glm::vec3(0, 1, 0));
+                monsterImp.draw(program, impMat);
+            }
+            if (hasPuglin) {
+                glm::mat4 pugMat = glm::translate(glm::mat4(1.0f), glm::vec3(88.0f, 0.0f, -0.8f));
+                pugMat = glm::rotate(pugMat, glm::radians(-35.0f), glm::vec3(0, 1, 0));
+                monsterPuglin.draw(program, pugMat);
+            }
+            if (hasSkeleton) {
+                glm::mat4 skelMat1 = glm::translate(glm::mat4(1.0f), glm::vec3(132.0f, 0.0f, -1.0f));
+                skelMat1 = glm::scale(skelMat1, glm::vec3(1.2f));
+                skelMat1 = glm::rotate(skelMat1, glm::radians(55.0f), glm::vec3(0, 1, 0));
+                monsterSkeleton.draw(program, skelMat1);
+
+                glm::mat4 skelMat2 = glm::translate(glm::mat4(1.0f), glm::vec3(148.0f, 0.0f, 1.1f));
+                skelMat2 = glm::scale(skelMat2, glm::vec3(1.15f));
+                skelMat2 = glm::rotate(skelMat2, glm::radians(-125.0f), glm::vec3(0, 1, 0));
+                monsterSkeleton.draw(program, skelMat2);
+            }
+            if (hasDragon) {
+                glm::mat4 dragMat = glm::translate(glm::mat4(1.0f), glm::vec3(175.0f, 2.5f, -6.0f));
+                dragMat = glm::scale(dragMat, glm::vec3(2.4f));
+                dragMat = glm::rotate(dragMat, glm::radians(210.0f), glm::vec3(0, 1, 0));
+                monsterDragon.draw(program, dragMat);
+            }
+
+            // 5. Draw Village Companion Character (Kaalvan Village Shrine at X = 6.0)
             if (companionChar) {
                 glm::mat4 compMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(6.0f, 0.0f, -0.6f));
                 compMatrix = glm::rotate(compMatrix, glm::radians(180.0f), glm::vec3(0, 1, 0));
                 companionChar->draw(program, compMatrix);
             }
 
-            // 4. Draw Active Player Character (Skinned mesh or fallback)
+            // 6. Draw Active Player Character (Skinned mesh or fallback)
             glm::mat4 playerModelMatrix = glm::translate(glm::mat4(1.0f), playerPhysics.position);
             playerModelMatrix = glm::rotate(playerModelMatrix, glm::radians(animator.getFacingAngleDegrees()), glm::vec3(0, 1, 0));
             if (hasSkinnedPlayer) {
@@ -581,10 +740,40 @@ int main(int argc, char** argv) {
                 playerFallback.draw(program, playerModelMatrix);
             }
 
+            // 7. Draw Equipped Weapon attached to Character
+            glUniform1i(glGetUniformLocation(program, "uIsSkinned"), 0);
+            if (equippedWeapon == 1 && hasClaymore) {
+                glm::mat4 wMat = playerModelMatrix;
+                wMat = glm::translate(wMat, glm::vec3(0.3f, 0.85f, 0.25f));
+                wMat = glm::rotate(wMat, glm::radians(20.0f), glm::vec3(0, 0, 1));
+                wMat = glm::scale(wMat, glm::vec3(0.65f));
+                weaponClaymore.draw(program, wMat);
+            } else if (equippedWeapon == 2 && hasShotgun) {
+                glm::mat4 wMat = playerModelMatrix;
+                wMat = glm::translate(wMat, glm::vec3(0.25f, 0.8f, 0.35f));
+                wMat = glm::rotate(wMat, glm::radians(90.0f), glm::vec3(0, 1, 0));
+                wMat = glm::scale(wMat, glm::vec3(0.40f));
+                weaponShotgun.draw(program, wMat);
+            } else if (equippedWeapon == 3 && hasAxe) {
+                glm::mat4 axeMat = playerModelMatrix;
+                axeMat = glm::translate(axeMat, glm::vec3(0.35f, 0.8f, 0.25f));
+                axeMat = glm::scale(axeMat, glm::vec3(0.7f));
+                weaponAxe.draw(program, axeMat);
+
+                if (hasShield) {
+                    glm::mat4 shMat = playerModelMatrix;
+                    shMat = glm::translate(shMat, glm::vec3(-0.35f, 0.8f, 0.15f));
+                    shMat = glm::rotate(shMat, glm::radians(90.0f), glm::vec3(0, 1, 0));
+                    shMat = glm::scale(shMat, glm::vec3(0.85f));
+                    weaponShield.draw(program, shMat);
+                }
+            }
+
             glfwSwapBuffers(window);
         }
     }
 
+    AudioEngine::instance().shutdown();
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
