@@ -6,3 +6,5 @@ D:\The Seventh Night\src\anim\Animator.cpp;D:\The Seventh Night\build\SeventhNig
 D:\The Seventh Night\src\anim\SkinnedModel.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\SkinnedModel.obj
 D:\The Seventh Night\src\physics\PhysicsEngine.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\PhysicsEngine.obj
 D:\The Seventh Night\src\audio\AudioEngine.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\AudioEngine.obj
+D:\The Seventh Night\src\scene\Scene.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\Scene.obj
+D:\The Seventh Night\src\render\SceneRenderer.cpp;D:\The Seventh Night\build\SeventhNight.dir\Release\SceneRenderer.obj
