@@ -1,0 +1,313 @@
+# ==============================================================================
+# The Seventh Night - Scene Definition
+# Level: Kaalvan Forest (Day 1 - The Descent into the Haunted Woods)
+# ==============================================================================
+
+[scene]
+name = Kaalvan Forest - Day 1
+ambient = 0.32 0.38 0.46
+moon_dir = -0.4 1.0 0.6
+moon_color = 0.42 0.54 0.72
+fog_color = 0.08 0.12 0.18
+fog_density = 0.018
+player_spawn = 0.0 0.0 0.0 1
+
+[backdrops]
+# texture_path pos_x pos_y pos_z width height
+backdrop = Fantasy_VN_Backgrounds/23_city_gate_night.jpg -72.0 13.0 -22.0 85.0 38.0
+backdrop = Fantasy_VN_Backgrounds/04_village_square_night.jpg 0.0 13.0 -22.0 85.0 38.0
+backdrop = Fantasy_VN_Backgrounds/03_forest_path_night.jpg 74.0 13.0 -22.0 85.0 38.0
+backdrop = Fantasy_VN_Backgrounds/15_misty_graveyard_night.jpg 145.0 13.0 -22.0 85.0 38.0
+
+[models]
+# alias = relative_path_from_assets_root
+wagon = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Prop_Wagon.gltf
+crate = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Prop_Crate.gltf
+fenceSingle = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Prop_WoodenFence_Single.gltf
+fenceExt = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Prop_WoodenFence_Extension1.gltf
+chimney = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Prop_Chimney.gltf
+wallPlasterDoor = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Wall_Plaster_Door_Round.gltf
+wallPlasterStraight = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Wall_Plaster_Straight.gltf
+wallPlasterWindow = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Wall_Plaster_Window_Wide_Flat.gltf
+wallBrickStraight = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Wall_UnevenBrick_Straight.gltf
+roof4x6 = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Roof_RoundTiles_4x6.gltf
+roof4x4 = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Roof_RoundTiles_4x4.gltf
+roofFront = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Roof_Front_Brick4.gltf
+cornerBrick = Medieval Village MegaKit[Standard]/Medieval Village MegaKit[Standard]/glTF/Corner_Exterior_Brick.gltf
+
+cityBldSmall = Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Building_Small_1.gltf
+cityBldMed = Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Building_Medium_2_001.gltf
+cityBldLarge = Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Building_Large_2.gltf
+cityStreet = Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Street_2Lane.gltf
+citySidewalk = Downtown City MegaKit[Standard]/Exports/glTF (Godot)/Sidewalk_Straight_3m.gltf
+
+treeCommon1 = Stylized Nature MegaKit[Standard]/glTF/CommonTree_1.gltf
+treeCommon2 = Stylized Nature MegaKit[Standard]/glTF/CommonTree_2.gltf
+treeDead1 = Stylized Nature MegaKit[Standard]/glTF/DeadTree_1.gltf
+treeDead2 = Stylized Nature MegaKit[Standard]/glTF/DeadTree_2.gltf
+treeTwisted = Stylized Nature MegaKit[Standard]/glTF/TwistedTree_1.gltf
+rock1 = Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_1.gltf
+rock2 = Stylized Nature MegaKit[Standard]/glTF/Rock_Medium_2.gltf
+bush = Stylized Nature MegaKit[Standard]/glTF/Bush_Common.gltf
+fern = Stylized Nature MegaKit[Standard]/glTF/Fern_1.gltf
+mushroom = Stylized Nature MegaKit[Standard]/glTF/Mushroom_Common.gltf
+rockPath = Stylized Nature MegaKit[Standard]/glTF/RockPath_Round_Wide.gltf
+grassShort = Stylized Nature MegaKit[Standard]/glTF/Grass_Common_Short.gltf
+grassTall = Stylized Nature MegaKit[Standard]/glTF/Grass_Wispy_Tall.gltf
+flowerGroup = Stylized Nature MegaKit[Standard]/glTF/Flower_3_Group.gltf
+pine = Stylized Nature MegaKit[Standard]/glTF/Pine_1.gltf
+pebble = Stylized Nature MegaKit[Standard]/glTF/Pebble_Round_1.gltf
+
+[props]
+# alias pos_x pos_y pos_z scale rot_y lane
+
+# --- ZONE 1: Western Industrial City Outskirts (X: -120 to -30) ---
+prop = cityStreet -115.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -115.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -103.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -103.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -91.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -91.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -79.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -79.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -67.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -67.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -55.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -55.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -43.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -43.0 0.0 3.2 1.0 0.0 0
+prop = cityStreet -31.0 0.0 0.0 1.0 0.0 1
+prop = citySidewalk -31.0 0.0 3.2 1.0 0.0 0
+
+prop = cityBldLarge -112.0 0.0 -6.5 1.0 0.0 2
+prop = cityBldMed -95.0 0.0 -5.5 1.0 0.0 2
+prop = cityBldLarge -78.0 0.0 -6.0 1.1 180.0 2
+prop = cityBldMed -62.0 0.0 -5.0 1.0 0.0 2
+prop = cityBldSmall -48.0 0.0 -4.5 1.0 0.0 2
+prop = cityBldSmall -36.0 0.0 -4.0 0.95 0.0 2
+
+prop = crate -103.0 0.0 2.2 1.2 15.0 0
+prop = crate -102.2 0.0 2.0 1.0 40.0 0
+prop = crate -102.6 0.9 2.1 0.9 -10.0 0
+prop = treeDead1 -110.0 0.0 -3.2 0.9 30.0 2
+prop = grassShort -107.0 0.0 2.8 0.8 45.0 0
+prop = pebble -101.0 0.0 1.2 1.0 25.0 1
+
+prop = crate -87.0 0.0 2.2 1.2 15.0 0
+prop = crate -86.2 0.0 2.0 1.0 40.0 0
+prop = crate -86.6 0.9 2.1 0.9 -10.0 0
+prop = treeDead1 -94.0 0.0 -3.2 0.9 30.0 2
+prop = grassShort -91.0 0.0 2.8 0.8 30.0 0
+prop = pebble -85.0 0.0 1.2 1.0 12.0 1
+
+prop = crate -71.0 0.0 2.2 1.2 15.0 0
+prop = crate -70.2 0.0 2.0 1.0 40.0 0
+prop = crate -70.6 0.9 2.1 0.9 -10.0 0
+prop = treeDead1 -78.0 0.0 -3.2 0.9 30.0 2
+prop = grassShort -75.0 0.0 2.8 0.8 55.0 0
+prop = pebble -69.0 0.0 1.2 1.0 80.0 1
+
+prop = crate -55.0 0.0 2.2 1.2 15.0 0
+prop = crate -54.2 0.0 2.0 1.0 40.0 0
+prop = treeDead1 -62.0 0.0 -3.2 0.9 30.0 2
+prop = grassShort -59.0 0.0 2.8 0.8 20.0 0
+prop = pebble -53.0 0.0 1.2 1.0 10.0 1
+
+# --- ZONE 2: The Medieval Village of Kaalvan (X: -28 to +28) ---
+prop = rockPath -26.0 0.015 0.0 1.15 45.0 1
+prop = rockPath -22.2 0.015 0.0 1.15 75.0 1
+prop = rockPath -18.4 0.015 0.0 1.15 15.0 1
+prop = rockPath -14.6 0.015 0.0 1.15 110.0 1
+prop = rockPath -10.8 0.015 0.0 1.15 25.0 1
+prop = rockPath -7.0 0.015 0.0 1.15 80.0 1
+prop = rockPath -3.2 0.015 0.0 1.15 35.0 1
+prop = rockPath 0.6 0.015 0.0 1.15 90.0 1
+prop = rockPath 4.4 0.015 0.0 1.15 20.0 1
+prop = rockPath 8.2 0.015 0.0 1.15 115.0 1
+prop = rockPath 12.0 0.015 0.0 1.15 40.0 1
+prop = rockPath 15.8 0.015 0.0 1.15 85.0 1
+prop = rockPath 19.6 0.015 0.0 1.15 10.0 1
+prop = rockPath 23.4 0.015 0.0 1.15 65.0 1
+
+prop = flowerGroup -20.0 0.0 1.8 0.85 20.0 0
+prop = flowerGroup -14.5 0.0 1.8 0.85 45.0 0
+prop = flowerGroup -9.0 0.0 1.8 0.85 70.0 0
+prop = flowerGroup -3.5 0.0 1.8 0.85 95.0 0
+prop = flowerGroup 2.0 0.0 1.8 0.85 120.0 0
+prop = flowerGroup 7.5 0.0 1.8 0.85 145.0 0
+prop = flowerGroup 13.0 0.0 1.8 0.85 170.0 0
+prop = flowerGroup 18.5 0.0 1.8 0.85 15.0 0
+
+# Cottage 1: Mill Outpost & Blacksmith (X = -20)
+prop = wallPlasterDoor -20.0 0.0 -3.2 1.0 0.0 2
+prop = wallPlasterWindow -18.0 0.0 -3.2 1.0 0.0 2
+prop = wallPlasterStraight -22.0 0.0 -3.2 1.0 0.0 2
+prop = roof4x6 -20.0 2.4 -3.2 1.05 0.0 2
+prop = chimney -18.5 3.8 -3.2 1.0 0.0 2
+prop = wagon -16.5 0.0 -1.2 1.0 -25.0 1
+prop = crate -22.5 0.0 -1.5 1.1 15.0 1
+prop = crate -21.8 0.0 -1.6 1.0 30.0 1
+prop = crate -22.2 0.9 -1.5 0.8 5.0 1
+prop = fenceSingle -26.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle -23.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle -20.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle -17.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle -14.0 0.0 2.8 1.0 0.0 0
+
+# Cottage 2: Village Elder's Hearth (X = -5)
+prop = wallBrickStraight -7.0 0.0 -3.4 1.0 0.0 2
+prop = wallPlasterDoor -5.0 0.0 -3.4 1.0 0.0 2
+prop = wallPlasterWindow -3.0 0.0 -3.4 1.0 0.0 2
+prop = roof4x6 -5.0 2.4 -3.4 1.05 0.0 2
+prop = chimney -3.5 3.8 -3.4 1.0 0.0 2
+prop = fenceExt -8.5 0.0 -1.8 1.0 10.0 1
+prop = fenceSingle -1.5 0.0 -1.8 1.0 -10.0 1
+prop = wagon -8.0 0.0 -0.8 1.0 15.0 1
+
+# Village Center & Sacred Shrine (X = +6)
+prop = cornerBrick 4.5 0.0 -2.6 1.0 45.0 2
+prop = cornerBrick 7.5 0.0 -2.6 1.0 -45.0 2
+prop = rock1 6.0 0.0 -2.2 1.2 0.0 2
+prop = crate 8.5 0.0 -1.2 1.0 10.0 1
+prop = crate 9.2 0.0 -1.4 1.0 35.0 1
+prop = fern 5.0 0.0 1.2 1.0 0.0 0
+prop = fern 7.0 0.0 1.4 1.1 45.0 0
+
+# Cottage 3: Forest Edge Gatehouse (X = +18)
+prop = wallPlasterDoor 18.0 0.0 -3.2 1.0 0.0 2
+prop = wallBrickStraight 20.0 0.0 -3.2 1.0 0.0 2
+prop = roof4x4 19.0 2.4 -3.2 1.05 0.0 2
+prop = chimney 19.8 3.8 -3.2 1.0 0.0 2
+prop = wagon 15.0 0.0 -1.2 1.0 -10.0 1
+prop = fenceSingle 12.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle 15.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle 18.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle 21.0 0.0 2.8 1.0 0.0 0
+prop = fenceSingle 24.0 0.0 2.8 1.0 0.0 0
+
+# --- ZONE 3: Ancient Kaalvan Deep Forest (X: +28 to +120) ---
+prop = treeCommon1 28.0 0.0 -4.2 1.1 40.0 2
+prop = treeCommon2 32.5 0.0 -4.0 0.9 80.0 2
+prop = treeTwisted 37.0 0.0 -4.5 1.2 120.0 2
+prop = treeCommon1 41.5 0.0 -4.1 1.0 160.0 2
+prop = treeDead2 43.5 0.0 -5.5 1.1 205.0 2
+prop = treeCommon2 46.0 0.0 -3.9 0.95 240.0 2
+prop = pine 44.5 0.0 -6.5 1.3 330.0 2
+prop = treeTwisted 50.5 0.0 -4.4 1.15 280.0 2
+prop = treeCommon1 55.0 0.0 -4.2 1.05 320.0 2
+prop = treeCommon2 59.5 0.0 -4.0 0.85 0.0 2
+prop = treeTwisted 64.0 0.0 -4.6 1.25 40.0 2
+prop = treeDead2 66.0 0.0 -5.5 1.1 85.0 2
+prop = treeCommon1 68.5 0.0 -4.1 1.0 120.0 2
+prop = treeCommon2 73.0 0.0 -3.8 0.9 160.0 2
+prop = treeTwisted 77.5 0.0 -4.5 1.2 200.0 2
+prop = treeCommon1 82.0 0.0 -4.2 1.1 240.0 2
+prop = treeDead2 84.0 0.0 -5.5 1.1 285.0 2
+prop = pine 80.5 0.0 -6.5 1.3 15.0 2
+prop = treeCommon2 86.5 0.0 -3.9 0.95 320.0 2
+prop = treeTwisted 91.0 0.0 -4.3 1.15 0.0 2
+prop = treeCommon1 95.5 0.0 -4.1 1.05 40.0 2
+prop = treeCommon2 100.0 0.0 -4.0 0.85 80.0 2
+prop = treeTwisted 104.5 0.0 -4.5 1.2 120.0 2
+prop = treeDead2 106.5 0.0 -5.5 1.1 165.0 2
+prop = treeCommon1 109.0 0.0 -4.2 1.0 200.0 2
+prop = treeCommon2 113.5 0.0 -3.8 0.9 240.0 2
+prop = treeTwisted 118.0 0.0 -4.4 1.15 280.0 2
+
+# Forest Ground Details (Rocks, bushes, mushrooms, ferns)
+prop = rock1 32.0 0.0 -0.8 0.9 120.0 1
+prop = bush 34.5 0.0 0.2 1.0 240.0 1
+prop = mushroom 30.8 0.0 -0.3 1.2 96.0 1
+prop = grassTall 33.0 0.0 -0.5 1.0 168.0 1
+
+prop = rock1 39.0 0.0 -0.8 0.9 225.0 1
+prop = bush 41.5 0.0 0.2 1.0 345.0 1
+prop = mushroom 37.8 0.0 -0.3 1.2 201.0 1
+prop = grassTall 40.0 0.0 -0.5 1.0 273.0 1
+
+prop = rock1 46.0 0.0 -0.8 0.9 330.0 1
+prop = bush 48.5 0.0 0.2 1.0 90.0 1
+prop = mushroom 44.8 0.0 -0.3 1.2 306.0 1
+prop = grassTall 47.0 0.0 -0.5 1.0 18.0 1
+
+prop = rock1 53.0 0.0 -0.8 0.9 75.0 1
+prop = bush 55.5 0.0 0.2 1.0 195.0 1
+prop = mushroom 51.8 0.0 -0.3 1.2 51.0 1
+prop = grassTall 54.0 0.0 -0.5 1.0 123.0 1
+
+prop = rock1 60.0 0.0 -0.8 0.9 180.0 1
+prop = bush 62.5 0.0 0.2 1.0 300.0 1
+prop = mushroom 58.8 0.0 -0.3 1.2 156.0 1
+prop = grassTall 61.0 0.0 -0.5 1.0 228.0 1
+
+prop = rock1 67.0 0.0 -0.8 0.9 285.0 1
+prop = bush 69.5 0.0 0.2 1.0 45.0 1
+prop = mushroom 65.8 0.0 -0.3 1.2 261.0 1
+prop = grassTall 68.0 0.0 -0.5 1.0 333.0 1
+
+prop = rock1 74.0 0.0 -0.8 0.9 30.0 1
+prop = bush 76.5 0.0 0.2 1.0 150.0 1
+prop = mushroom 72.8 0.0 -0.3 1.2 6.0 1
+prop = grassTall 75.0 0.0 -0.5 1.0 78.0 1
+
+prop = rock1 81.0 0.0 -0.8 0.9 135.0 1
+prop = bush 83.5 0.0 0.2 1.0 255.0 1
+prop = mushroom 79.8 0.0 -0.3 1.2 111.0 1
+prop = grassTall 82.0 0.0 -0.5 1.0 183.0 1
+
+prop = rock1 88.0 0.0 -0.8 0.9 240.0 1
+prop = bush 90.5 0.0 0.2 1.0 0.0 1
+prop = mushroom 86.8 0.0 -0.3 1.2 216.0 1
+prop = grassTall 89.0 0.0 -0.5 1.0 288.0 1
+
+prop = rock1 95.0 0.0 -0.8 0.9 345.0 1
+prop = bush 97.5 0.0 0.2 1.0 105.0 1
+prop = mushroom 93.8 0.0 -0.3 1.2 321.0 1
+prop = grassTall 96.0 0.0 -0.5 1.0 33.0 1
+
+# Foreground Framing Trees and Ferns (Lane 0 / Z > 2.0)
+prop = treeTwisted 30.0 0.0 3.2 1.25 66.0 0
+prop = fern 31.5 0.0 2.5 1.1 51.0 0
+prop = fern 28.5 0.0 2.6 1.0 87.0 0
+
+prop = treeTwisted 41.0 0.0 3.2 1.25 308.0 0
+prop = fern 42.5 0.0 2.5 1.1 237.0 0
+prop = fern 39.5 0.0 2.6 1.0 273.0 0
+
+prop = treeTwisted 52.0 0.0 3.2 1.25 190.0 0
+prop = fern 53.5 0.0 2.5 1.1 63.0 0
+prop = fern 50.5 0.0 2.6 1.0 99.0 0
+
+prop = treeTwisted 63.0 0.0 3.2 1.25 72.0 0
+prop = fern 64.5 0.0 2.5 1.1 249.0 0
+prop = fern 61.5 0.0 2.6 1.0 285.0 0
+
+prop = treeTwisted 74.0 0.0 3.2 1.25 314.0 0
+prop = fern 75.5 0.0 2.5 1.1 75.0 0
+prop = fern 72.5 0.0 2.6 1.0 111.0 0
+
+prop = treeTwisted 85.0 0.0 3.2 1.25 196.0 0
+prop = fern 86.5 0.0 2.5 1.1 261.0 0
+prop = fern 83.5 0.0 2.6 1.0 297.0 0
+
+prop = treeTwisted 96.0 0.0 3.2 1.25 78.0 0
+prop = fern 97.5 0.0 2.5 1.1 87.0 0
+prop = fern 94.5 0.0 2.6 1.0 123.0 0
+
+[colliders]
+# min_x min_y min_z max_x max_y max_z type lane is_trigger
+collider = -150.0 -1.0 -10.0 200.0 0.0 10.0 Normal 1 false
+collider = -17.5 0.0 -2.0 -15.5 0.85 -0.4 OneWay 1 false
+collider = -23.0 0.0 -2.5 -21.0 0.95 -0.6 OneWay 1 false
+collider = 14.0 0.0 -2.0 16.0 0.85 -0.4 OneWay 1 false
+collider = 8.0 0.0 -1.8 10.0 0.95 -0.8 OneWay 1 false
+collider = 32.0 0.0 -1.5 35.0 1.2 0.5 Ledge 1 false
+collider = 50.0 0.0 -1.5 54.0 1.5 0.5 ClimbableVine 1 false
+
+[creatures]
+# type pos_x pos_y pos_z
+creature = Imp 52.0 0.0 -1.2
+creature = Puglin 88.0 0.0 -0.8
+creature = Skeleton 132.0 0.0 -1.0
+creature = Skeleton 148.0 0.0 1.1
+creature = Dragon 175.0 2.5 -6.0
