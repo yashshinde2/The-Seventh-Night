@@ -1,4 +1,4 @@
-# The Seventh Night (C++ / OpenGL 3.3, no engine)
+# The-Seventh-Night (C++ / OpenGL 3.3, no engine)
 
 Milestone 1: window, forest models from .glb files, 2.5D side camera with three depth lanes,
 lantern light, fog, and a test "Will" control. This project has not been compiled yet, so expect a
